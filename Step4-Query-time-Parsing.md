@@ -13,7 +13,7 @@
 - [4.4 Send the data via Bruno](#44-send-the-data-via-bruno)
 - [4.5 Verify the raw data is there](#45-verify-the-raw-data-is-there)
 - [4.6 Build the ASIM filtering parser `vimAuthenticationContosoAuth`](#46-build-the-asim-filtering-parser-vimauthenticationcontosoauth)
-- [4.6.5 What the parameters actually *do* — the librarian analogy](#465-what-the-parameters-actually-do--the-librarian-analogy)
+- [4.6.5 What the parameters actually *do* — buffet vs. menu](#465-what-the-parameters-actually-do--buffet-vs-menu)
 - [4.7 Test the parser](#47-test-the-parser)
 - [4.8 Register the parser with the unifying parser `_Im_Authentication`](#48-register-the-parser-with-the-unifying-parser-_im_authentication)
 - [4.9 Bonus — complete the pair with `ASimAuthenticationContosoAuth`](#49-bonus--complete-the-pair-with-asimauthenticationcontosoauth)
@@ -239,101 +239,181 @@ Now let's unpack **why** this looks the way it does — every section is intenti
 
 ---
 
-## 4.6.5 What the parameters actually *do* — the librarian analogy
+## 4.6.5 What the parameters actually *do* — buffet vs. menu
 
-Before we test the parser, take five minutes to internalize what those seven parameters are *for*. Once it clicks, every ASIM parser you ever read makes sense.
+Before we test the parser, take five minutes to internalize what the parameters are *for*. Once it clicks, every ASIM parser you ever read makes sense.
 
-### The analogy: a librarian with a request slip
+### The one-line summary
 
-Think of `vimAuthenticationContosoAuth` as a **librarian sitting on top of a giant pile of nested log books** (your `ContosoAuthRaw_CL` table). You want a specific subset of books. You can ask in two ways:
+> **Both parsers return the same rows. The parameters change how much data Sentinel has to scan and parse to *get* those rows.**
 
-**Without parameters** — "Bring me everything you have." The librarian hauls every book out, opens each one, translates it into English (parses the nested JSON into ASIM columns), and dumps the whole pile on your desk. *Then* you go through the pile yourself looking for the bits you actually wanted. Slow, expensive, wasteful.
+That's the entire story. Everything below is just unpacking *why* and *how*.
 
-**With parameters** — you hand the librarian a **request slip** before they start: *"Only failed sign-ins, only from these usernames, only in the last hour."* The librarian glances at the slip, walks past the irrelevant shelves entirely, opens only the books that survive the filter, and translates only those. The pile that lands on your desk is small and pre-filtered.
+### The analogy: buffet vs. menu
 
-That request slip is exactly what the parameters are. Each parameter is one line on the slip. **Empty line = "don't filter on this." Filled in = "use this filter."**
+We loaded **20 events** into `ContosoAuthRaw_CL`. Imagine that's actually **20 million** in production. A detection rule runs **every 5 minutes** and looks at the **last hour** for failed sign-ins from suspicious IPs.
 
-### What each parameter does — in concrete terms
+**Without parameters → the buffet (`ASimAuthenticationContosoAuth`)**
+> The kitchen prepares *every* dish in the menu, plates each one, and sets the entire spread out on the table. *Then* you walk down the line and pick the three plates you wanted.  
+> Sentinel reads all 20M rows, runs `parse_json` on every one, builds the full ASIM column set, and *then* the rule's `where TimeGenerated > ago(1h) | where EventResult == "Failure"` throws 19,999,950 of them away.
 
-The parameters fall into three groups.
+**With parameters → ordering off a menu (`vimAuthenticationContosoAuth`)**
+> You hand the waiter a slip: *"Failed sign-ins, last hour, source IP starts with 185.220."* The kitchen reads the slip first, walks past the irrelevant ingredients, and only cooks the three plates you actually want.  
+> Sentinel filters on `TimeGenerated` first (last hour → ~80K rows), then a cheap string check on the IP prefix (~50 rows survive), and *only those 50* go through the expensive `parse_json` + ASIM normalization.
+
+**Same 50 rows on your screen. One scanned 20M; the other scanned 80K and parsed 50.**
+
+### "But how does the parser *know* what to filter on?" — your skeptic's question, answered
+
+Fair pushback: a function looks like a black box. You'd think calling `vim*(starttime=ago(1h))` would still have to read every row and *then* discard the old ones. Two things make it actually work:
+
+**1. KQL functions are not opaque — they are inlined.** When you call the parser, the Kusto engine doesn't execute the body as a sealed subroutine. It pastes the function body into your query and runs the optimizer over the *combined* result. So a call like:
+
+```kusto
+vimAuthenticationContosoAuth(starttime=ago(1h), srcipaddr_has_any_prefix=dynamic(["185.220."]))
+```
+
+…effectively becomes (simplified):
+
+```kusto
+ContosoAuthRaw_CL
+| where TimeGenerated > ago(1h)                      // ← the starttime parameter
+| extend _srcip = tostring(RawEvent.network.source_ip)
+| where _srcip startswith "185.220."                  // ← the srcipaddr parameter
+| extend ... full ASIM normalization ...              // expensive bit, only on survivors
+```
+
+The optimizer can now see all the way down to the table.
+
+**2. The parser author wrote the filters in the right order, against cheap columns.** Look at the body of `vimAuthenticationContosoAuth`:
+
+- `where TimeGenerated > starttime` — runs against the table's **indexed, partitioned** column. Sentinel literally jumps to the relevant time-shards on disk and skips the rest. It never reads the old rows at all.
+- `where _srcip startswith_cs prefix` — a **cheap string scan** on the raw column.
+- *Then* the expensive `parse_json` + column construction runs on whatever survives.
+
+If the parser author had written it the wrong way around — `parse_json` first, `where` afterwards — the parameters would be useless. The whole point of the `vim*` pattern is that the body **filters cheaply before parsing expensively**.
+
+> **The parser doesn't have magical awareness. It has good ordering.** Filter steps that touch only indexed/raw columns are the slip the optimizer reads. Anything past `parse_json`/`extend` is a wall the optimizer can't see through reliably.
+
+### A concrete walk-through with our sample data
+
+We have 20 events including beth's brute-force burst from `185.220.101.42`.
+
+**A hunter exploring at 2 a.m., no idea what they're looking for yet:**
+```kusto
+ASimAuthenticationContosoAuth | take 100
+```
+No slip needed. Get everything, look around. *This is what the parameter-less parser is for.*
+
+**The detection rule from Step 5, running every 5 minutes:**
+```kusto
+vimAuthenticationContosoAuth(
+    starttime = ago(1h),
+    eventresult = "Failure",
+    srcipaddr_has_any_prefix = dynamic(["185.220."]))
+| summarize FailCount = count() by TargetUserName, SrcIpAddr
+| where FailCount >= 5
+```
+The slip arrives *before* parsing starts. Sentinel skips ~99.95% of the table. **Same end result as the equivalent buffet query** — just dramatically less I/O and CPU.
+
+You **can** write the same detection logic with the buffet:
+```kusto
+ASimAuthenticationContosoAuth
+| where TimeGenerated > ago(1h)
+| where EventResult == "Failure"
+| where SrcIpAddr startswith "185.220."
+| summarize ...
+```
+The result is identical. But the parser body has already done a full normalization on every row in the table by the time these `where` clauses get to run. **The filters arrived too late.**
+
+### The performance payoff in one picture
+
+```
+ BUFFET (parameter-less)                       MENU (with parameters)
+ ───────────────────────                       ───────────────────────
+ 20,000,000 raw rows                           20,000,000 raw rows
+         │                                              │
+         ▼                                              ▼
+   parse_json on every row                       where TimeGenerated > ago(1h)
+   (expensive — full JSON walk)                  (jumps to time-shards on disk)
+         │                                              │   → 80,000 rows
+         ▼                                              ▼
+   20,000,000 ASIM rows                          extract _srcip cheaply
+         │                                              │
+         ▼                                              ▼
+   apply detection filters                       where _srcip startswith "185.220."
+         │                                              │   → 50 rows
+         ▼                                              ▼
+   50 rows returned                              full parse_json + ASIM build
+   Cost: huge                                          │   → 50 ASIM rows
+                                                       ▼
+                                                 50 rows returned
+                                                 Cost: tiny
+```
+
+### Prove it to yourself
+
+In the Logs editor, run both queries against our 20 rows. Click **Query details** in the bottom-right of the results pane. Compare the **"Data scanned"** value.
+
+With 20 rows the difference is negligible — both numbers are tiny. But the *principle* is the same one that decides whether your rule completes in 2 seconds or times out at 10 minutes when the table holds 20 million rows. **The pattern is what matters; the volume just makes it visible.**
+
+---
+
+### Reference: the parameters in detail
+
+You don't need to memorize this. Skim it now, and come back when you're writing your own parser or a detection rule. The parameters fall into three groups.
 
 **1. Time window** (almost always used)
 
-| Parameter | Plain English |
-|-----------|---------------|
-| `starttime` | "Don't bother with anything older than this." |
-| `endtime` | "Don't bother with anything newer than this." |
+| Parameter | What it does |
+|-----------|--------------|
+| `starttime` | Drops rows older than this. Filters on indexed `TimeGenerated`. |
+| `endtime`   | Drops rows newer than this. Same. |
 
-Filters on the table's `TimeGenerated` column **before** any JSON parsing happens. This is the cheapest, most powerful filter — `TimeGenerated` is indexed.
+**2. Identity / network filters** (the "who" and "where")
 
-**2. Identity / network filters** (used by detection rules)
+Our lab parser implements two of these; the full unifier contract has more (see Step 4.8).
 
-Our lab parser implements two of these; the full unifier contract has more (see Step 4.8). The shape is the same:
+| Parameter | What it does | Example |
+|-----------|--------------|---------|
+| `targetusername_has_any` | Keep only rows where the *target* user (the one being signed into) matches one of these names. | `dynamic(["beth@contoso.nl"])` |
+| `srcipaddr_has_any_prefix` | Keep only rows where the **source IP** starts with one of these prefixes. Prefixes, not full IPs, so `["185.220.", "203.0.113."]` covers whole ranges. | `dynamic(["185.220."])` |
 
-| Parameter | Plain English | Example value |
-|-----------|---------------|---------------|
-| `targetusername_has_any` | "Only events where the *target* user (the one being signed into) matches one of these names." | `dynamic(["beth@contoso.nl"])` |
-| `srcipaddr_has_any_prefix` | "Only events where the **source IP** starts with one of these prefixes." Prefixes, not full IPs, so you can pass `["185.220.", "203.0.113."]` to match whole ranges. | `dynamic(["185.220."])` |
+> **💡 Why prefixes instead of CIDR:** prefix match is a cheap string operation. CIDR match requires parsing IPs as numbers — slower at scale. ASIM picks the cheap one.
 
-> **💡 Why prefixes for IPs:** matching IP prefixes is essentially free in KQL (string prefix match). Matching CIDR ranges requires parsing IPs as numbers — measurably slower at scale. ASIM picks the cheap one.
-
-> **💡 Why the 12-param contract has more (`actorusername_has_any`, `srchostname_has_any`, `targetipaddr_has_any_prefix`, `dvcipaddr_has_any_prefix`, `dvchostname_has_any`):** because authentication events have multiple roles for "who/where/which device":  
+> **💡 Why the 12-param unifier contract has more (`actorusername_has_any`, `srchostname_has_any`, `targetipaddr_has_any_prefix`, `dvcipaddr_has_any_prefix`, `dvchostname_has_any`):** authentication events have multiple roles for "who / where / which device":  
 > **src** = where the user is coming **from** (their laptop's public IP)  
 > **target** = the resource being signed **into** (e.g., a SharePoint front-end's IP)  
-> **dvc** = the system **reporting** the event (e.g., the auth gateway log producer)  
-> Different rules care about different roles. The unifier's contract has to cover all of them; your `vim*` parser only has to implement the ones that make sense for *your* source.
+> **dvc** = the system **reporting** the event (the auth gateway log producer)  
+> Different rules care about different roles. The unifier's contract covers them all; your `vim*` parser only has to implement the ones that exist in *your* source.
 
 **3. Outcome filters**
 
-| Parameter | Plain English | Allowed values |
-|-----------|---------------|----------------|
-| `eventtype_in` | "Only these kinds of authentication events." | `dynamic(["Logon"])`, `dynamic(["Logon","Logoff"])`, `dynamic(["Elevate"])` |
-| `eventresult` | "Only this outcome." Single value, not a list. | `"Success"`, `"Failure"`, `"*"` for any |
+| Parameter | What it does | Allowed values |
+|-----------|--------------|----------------|
+| `eventtype_in` | Only these kinds of authentication events. | `dynamic(["Logon"])`, `dynamic(["Logon","Logoff"])`, `dynamic(["Elevate"])` |
+| `eventresult`  | Only this outcome. Single value, not a list. | `"Success"`, `"Failure"`, `"*"` for any |
 
-### The convention that ties it all together
+### The "empty means no filter" convention
 
-| Parameter type | Empty default means | When the caller passes a value |
-|----------------|---------------------|--------------------------------|
-| `dynamic` (lists like `*_has_any`, `*_in`) | `dynamic([])` → "no filter" | Parser keeps only rows where the column matches one of the listed values |
-| `string` (`eventresult`) | `"*"` → "no filter" | Parser keeps only rows where the column equals that single value |
-| `datetime` (`starttime`/`endtime`) | `datetime(null)` → "no filter" | Parser bounds `TimeGenerated` |
+| Parameter type | Empty default | What "filled in" means |
+|----------------|---------------|------------------------|
+| `dynamic` lists (`*_has_any`, `*_in`) | `dynamic([])` → no filter | Keep rows where the column matches any listed value |
+| `string` (`eventresult`) | `"*"` → no filter | Keep rows where the column equals exactly this value |
+| `datetime` (`starttime`/`endtime`) | `datetime(null)` → no filter | Bound `TimeGenerated` |
 
-That's why every filter line in your parser body looks like:
+That's why every filter in the parser body looks like this:
 
 ```kusto
 | where (array_length(targetusername_has_any) == 0
          or _upn has_any (targetusername_has_any))
 ```
 
-Plain English: *"If the request slip is blank for this filter, let the row through. Otherwise, only let it through if it matches what's on the slip."*
+Plain English: *"If the slip is blank for this filter, let the row through. Otherwise, only let it through if it matches the slip."*
 
-### The performance payoff in one picture
+### Why this is non-negotiable for the unifier
 
-```
- WITHOUT pushdown (parameters ignored)        WITH pushdown (parameters honored)
- ────────────────────────────────────        ───────────────────────────────────
- 10,000,000 raw rows                          10,000,000 raw rows
-         │                                            │
-         ▼                                            ▼
-   parse_json on every row                      filter on TimeGenerated → 50,000 rows
-   (expensive — full JSON walk)                         │
-         │                                              ▼
-         ▼                                      extract _upn, _srcip cheaply
-   10,000,000 ASIM rows                                 │
-         │                                              ▼
-         ▼                                      filter to Failure + matching IP
-   filter to what you wanted                            │   → 200 rows
-         │                                              ▼
-         ▼                                      full JSON parse → 200 ASIM rows
-   200 rows returned                            200 rows returned
-   Cost: huge                                   Cost: tiny
-```
-
-That's why the parser body extracts `_upn` / `_srcip` / `_outcome` cheaply *first*, applies the parameter filters *next*, and only does the expensive full normalization on the survivors. **Same end result, orders of magnitude less compute.**
-
-### Why this is non-negotiable in the unifier
-
-Microsoft's `_Im_Authentication` doesn't know what your users will ask. So when a hunter writes:
+Microsoft's `_Im_Authentication` doesn't know what your users will ask. When a hunter writes:
 
 ```kusto
 _Im_Authentication(
@@ -342,7 +422,7 @@ _Im_Authentication(
     eventresult="Failure")
 ```
 
-…the unifier blindly forwards those named parameters to **every registered parser**, including yours. If your parser doesn't accept that signature, the call fails (and `union isfuzzy=true` swallows the error — the silent "no rows" trap from the Step 4.8 troubleshooting note).
+…the unifier blindly forwards those **named** parameters to every registered parser, including yours. If your parser doesn't accept that exact signature, the call fails — and `union isfuzzy=true` swallows the error (the silent "no rows" trap from the Step 4.8 troubleshooting note).
 
 ---
 
