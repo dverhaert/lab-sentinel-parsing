@@ -243,57 +243,82 @@ Now let's unpack **why** this looks the way it does — every section is intenti
 
 Before we test the parser, take five minutes to internalize what the parameters are *for*. Once it clicks, every ASIM parser you ever read makes sense.
 
-### The one-line summary
+### Two words you need to know first
 
-> **Both parsers return the same rows. The parameters change how much data Sentinel has to scan and parse to *get* those rows.**
+The rest of this section uses two terms a lot. Neither is scary once you see what they mean.
 
-That's the entire story. Everything below is just unpacking *why* and *how*.
+**`parse_json` = "open the sealed envelope."**  
+Our `ContosoAuthRaw_CL` table has a column called `RawEvent`. Each cell in that column holds one **sealed envelope** of nested JSON like:
+
+```json
+{ "user": {"upn":"beth@contoso.nl"}, "src": {"ip":"185.220.101.42"}, "outcome":"Failure", … }
+```
+
+Anytime our parser writes `tostring(RawEvent.user.upn)`, KQL has to **open that envelope and read inside it**. That's `parse_json` — the small but real cost of cracking open a JSON blob, **per row**. With 20 rows you don't notice. With 20 million rows you very much do.
+
+What's *cheap*, by contrast, is reading **columns that are already columns** — like `TimeGenerated`. Those values sit on disk in a sorted, indexed format. KQL can skip whole blocks of them without ever opening an envelope.
+
+> **One-line rule:** filtering on `TimeGenerated` is cheap. Filtering on anything *inside* `RawEvent` requires opening envelopes — so we want to do it on as few envelopes as possible.
+
+**"Optimizer" = the smart waiter.**  
+When you submit a KQL query, Kusto doesn't run it line-by-line in the order you typed. A planner — the **optimizer** — looks at the *whole* query and rearranges the work to do the cheap, narrowing steps **first**. Same idea as a smart waiter who reads your whole order before walking into the kitchen, and groups the work to save trips.
+
+Two facts about the optimizer matter for us:
+
+1. **It can see inside saved functions.** When you call `vimAuthenticationContosoAuth(…)`, Kusto doesn't treat the function as a black box. It pastes the body into your query and optimizes the **combined** thing. (This is called "inlining" — the recipe is copied straight onto the chef's prep sheet rather than being mailed in a sealed letter.)
+2. **It can only push filters down past steps it understands.** A `where` on `TimeGenerated` can be pushed all the way down to disk. A `where` on a column that doesn't exist yet — because it gets created later by `parse_json`/`extend` — *cannot* be pushed past the step that creates it. **Order in the parser body matters enormously.**
+
+That's all the theory. Now the analogy.
 
 ### The analogy: buffet vs. menu
 
 We loaded **20 events** into `ContosoAuthRaw_CL`. Imagine that's actually **20 million** in production. A detection rule runs **every 5 minutes** and looks at the **last hour** for failed sign-ins from suspicious IPs.
 
 **Without parameters → the buffet (`ASimAuthenticationContosoAuth`)**
-> The kitchen prepares *every* dish in the menu, plates each one, and sets the entire spread out on the table. *Then* you walk down the line and pick the three plates you wanted.  
-> Sentinel reads all 20M rows, runs `parse_json` on every one, builds the full ASIM column set, and *then* the rule's `where TimeGenerated > ago(1h) | where EventResult == "Failure"` throws 19,999,950 of them away.
+> The kitchen prepares *every* dish on the menu, plates each one, and lays the entire spread out on the table. *Then* you walk down the line and pick the three plates you wanted.  
+> Sentinel reads all 20M envelopes, opens each one (`parse_json`), builds the full ASIM column set, and *then* the rule's `where TimeGenerated > ago(1h) | where EventResult == "Failure"` throws 19,999,950 of them away.
 
 **With parameters → ordering off a menu (`vimAuthenticationContosoAuth`)**
 > You hand the waiter a slip: *"Failed sign-ins, last hour, source IP starts with 185.220."* The kitchen reads the slip first, walks past the irrelevant ingredients, and only cooks the three plates you actually want.  
-> Sentinel filters on `TimeGenerated` first (last hour → ~80K rows), then a cheap string check on the IP prefix (~50 rows survive), and *only those 50* go through the expensive `parse_json` + ASIM normalization.
+> Sentinel filters on `TimeGenerated` first (last hour → ~80K envelopes survive), then a cheap string check on the IP prefix (~50 envelopes survive), and *only those 50* get fully opened with `parse_json` and turned into ASIM rows.
 
-**Same 50 rows on your screen. One scanned 20M; the other scanned 80K and parsed 50.**
+**Same 50 rows on your screen. The buffet opened 20 million envelopes. The menu opened 50.**
 
 ### "But how does the parser *know* what to filter on?" — your skeptic's question, answered
 
-Fair pushback: a function looks like a black box. You'd think calling `vim*(starttime=ago(1h))` would still have to read every row and *then* discard the old ones. Two things make it actually work:
+Fair pushback: a function looks like a black box. You'd think calling `vim*(starttime=ago(1h))` would still have to read every envelope and *then* discard the old ones. It doesn't, and here's exactly why — using the two terms we just defined.
 
-**1. KQL functions are not opaque — they are inlined.** When you call the parser, the Kusto engine doesn't execute the body as a sealed subroutine. It pastes the function body into your query and runs the optimizer over the *combined* result. So a call like:
+**Step 1 — the optimizer inlines the function.** When you write:
 
 ```kusto
 vimAuthenticationContosoAuth(starttime=ago(1h), srcipaddr_has_any_prefix=dynamic(["185.220."]))
 ```
 
-…effectively becomes (simplified):
+…Kusto pastes the parser body into your query. The combined query the optimizer actually plans looks (simplified) like this:
 
 ```kusto
 ContosoAuthRaw_CL
-| where TimeGenerated > ago(1h)                      // ← the starttime parameter
-| extend _srcip = tostring(RawEvent.network.source_ip)
-| where _srcip startswith "185.220."                  // ← the srcipaddr parameter
-| extend ... full ASIM normalization ...              // expensive bit, only on survivors
+| where TimeGenerated > ago(1h)                       // ← from the starttime parameter
+| extend _srcip = tostring(RawEvent.src.ip)           // ← envelope-opening starts here
+| where _srcip startswith "185.220."                  // ← from the srcipaddr parameter
+| extend ... full ASIM normalization ...              // ← lots more envelope-opening, on survivors only
 ```
 
-The optimizer can now see all the way down to the table.
+There is no black box anymore. The optimizer sees a flat pipeline, top to bottom.
 
-**2. The parser author wrote the filters in the right order, against cheap columns.** Look at the body of `vimAuthenticationContosoAuth`:
+**Step 2 — the optimizer pushes the cheap filter all the way to disk.** It reads that pipeline and notices: *"the first `where` only touches `TimeGenerated`, which is an indexed column on disk. I can apply that **before** loading any envelopes at all."* Sentinel jumps straight to the relevant time-shards on disk and only loads ~80K envelopes. The other 19.92M never leave storage.
 
-- `where TimeGenerated > starttime` — runs against the table's **indexed, partitioned** column. Sentinel literally jumps to the relevant time-shards on disk and skips the rest. It never reads the old rows at all.
-- `where _srcip startswith_cs prefix` — a **cheap string scan** on the raw column.
-- *Then* the expensive `parse_json` + column construction runs on whatever survives.
+**Step 3 — the parser author put the next filter in the right place.** The next `where` filters on `_srcip`, which only exists *after* one cheap envelope-peek extracted it. So the optimizer can't push that filter past the loading step — but it *can* apply it before the giant `extend ... full ASIM normalization ...` block. ~80K envelopes get a one-field peek (cheap), ~50 survive, and only those 50 get the full expensive treatment.
 
-If the parser author had written it the wrong way around — `parse_json` first, `where` afterwards — the parameters would be useless. The whole point of the `vim*` pattern is that the body **filters cheaply before parsing expensively**.
+**Step 4 — the answer to your question.** The parser doesn't have magical awareness of the data. It has three things:
 
-> **The parser doesn't have magical awareness. It has good ordering.** Filter steps that touch only indexed/raw columns are the slip the optimizer reads. Anything past `parse_json`/`extend` is a wall the optimizer can't see through reliably.
+1. **Cheap columns to filter on early** (`TimeGenerated` directly, plus a quick one-field `_srcip` peek before doing anything else).
+2. **An author who put the filters in the right order** — narrowing steps first, expensive steps last.
+3. **An optimizer that's allowed to look inside the function** and push those narrowing steps as close to the disk as possible.
+
+If the parser author had written it the wrong way around — full envelope-opening first, `where` afterwards — the optimizer would be stuck. It can't push a filter past a step that creates the very columns the filter needs. The buffet has exactly this problem: by the time you get to filter, all the cooking is already done.
+
+> **The slogan:** *the parser doesn't know your filter; the optimizer does, and the parser body is written in an order that lets the optimizer help.*
 
 ### A concrete walk-through with our sample data
 
@@ -314,7 +339,7 @@ vimAuthenticationContosoAuth(
 | summarize FailCount = count() by TargetUserName, SrcIpAddr
 | where FailCount >= 5
 ```
-The slip arrives *before* parsing starts. Sentinel skips ~99.95% of the table. **Same end result as the equivalent buffet query** — just dramatically less I/O and CPU.
+The slip arrives *before* envelope-opening starts. Sentinel skips ~99.95% of the table on disk. **Same end result as the equivalent buffet query** — just dramatically less I/O and CPU.
 
 You **can** write the same detection logic with the buffet:
 ```kusto
@@ -324,28 +349,29 @@ ASimAuthenticationContosoAuth
 | where SrcIpAddr startswith "185.220."
 | summarize ...
 ```
-The result is identical. But the parser body has already done a full normalization on every row in the table by the time these `where` clauses get to run. **The filters arrived too late.**
+The result is identical. But because `EventResult` and `SrcIpAddr` are columns the buffet *creates* (by opening every envelope), the optimizer can't push those `where` clauses below the parsing step. **The narrowing arrived too late.**
 
 ### The performance payoff in one picture
 
 ```
  BUFFET (parameter-less)                       MENU (with parameters)
  ───────────────────────                       ───────────────────────
- 20,000,000 raw rows                           20,000,000 raw rows
+ 20,000,000 sealed envelopes on disk           20,000,000 sealed envelopes on disk
          │                                              │
          ▼                                              ▼
-   parse_json on every row                       where TimeGenerated > ago(1h)
-   (expensive — full JSON walk)                  (jumps to time-shards on disk)
-         │                                              │   → 80,000 rows
+   open every envelope (parse_json)              filter on TimeGenerated FIRST
+   and build full ASIM columns                   (no envelopes opened yet)
+         │                                              │   → 80,000 envelopes loaded
          ▼                                              ▼
-   20,000,000 ASIM rows                          extract _srcip cheaply
+   20,000,000 fully-shaped rows                  open each one just enough
+   in memory                                     to read _srcip
          │                                              │
          ▼                                              ▼
    apply detection filters                       where _srcip startswith "185.220."
-         │                                              │   → 50 rows
+         │                                              │   → 50 envelopes survive
          ▼                                              ▼
-   50 rows returned                              full parse_json + ASIM build
-   Cost: huge                                          │   → 50 ASIM rows
+   50 rows returned                              fully open & shape only these 50
+   Cost: huge                                          │
                                                        ▼
                                                  50 rows returned
                                                  Cost: tiny
