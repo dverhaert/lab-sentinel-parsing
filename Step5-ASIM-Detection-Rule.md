@@ -35,36 +35,24 @@ We'll add a **trivial wrapper parser** so that table also flows through the unif
 
 ### Create `vimAuthenticationContosoAuthIngest`
 
-In the **Logs** editor, paste and **save as function** with name `vimAuthenticationContosoAuthIngest`:
+In the **Logs** editor, paste the body below and **Save as function** with name `vimAuthenticationContosoAuthIngest`. Add the **same seven parameters** in the Save dialog as you did for `vimAuthenticationContosoAuth` in Step 4.6 (single-field variant string is identical — copy from Step 4.6 if needed).
 
 ```kusto
-let parser = (
-    starttime: datetime = datetime(null),
-    endtime: datetime = datetime(null),
-    targetusername_has_any: dynamic = dynamic([]),
-    srcipaddr_has_any_prefix: dynamic = dynamic([]),
-    eventtype_in: dynamic = dynamic([]),
-    eventresult: string = "*",
-    disabled: bool = false
-) {
-    ContosoAuthIngest_CL
-    | where not(disabled)
-    | where (isnull(starttime) or TimeGenerated >= starttime)
-        and (isnull(endtime)   or TimeGenerated <= endtime)
-    | where (array_length(targetusername_has_any) == 0
-             or TargetUserName has_any (targetusername_has_any))
-        and (array_length(srcipaddr_has_any_prefix) == 0
-             or has_any_ipv4_prefix(SrcIpAddr, srcipaddr_has_any_prefix))
-        and (array_length(eventtype_in) == 0
-             or EventType in (eventtype_in))
-        and (eventresult == "*" or EventResult == eventresult)
-    | extend
-        User   = TargetUserName,
-        IpAddr = SrcIpAddr,
-        Dvc    = SrcDvcHostname
-};
-parser(starttime, endtime, targetusername_has_any, srcipaddr_has_any_prefix,
-       eventtype_in, eventresult, disabled)
+ContosoAuthIngest_CL
+| where not(disabled)
+| where (isnull(starttime) or TimeGenerated >= starttime)
+    and (isnull(endtime)   or TimeGenerated <= endtime)
+| where (array_length(targetusername_has_any) == 0
+         or TargetUserName has_any (targetusername_has_any))
+    and (array_length(srcipaddr_has_any_prefix) == 0
+         or has_any_ipv4_prefix(SrcIpAddr, srcipaddr_has_any_prefix))
+    and (array_length(eventtype_in) == 0
+         or EventType in (eventtype_in))
+    and (eventresult == "*" or EventResult == eventresult)
+| extend
+    User   = TargetUserName,
+    IpAddr = SrcIpAddr,
+    Dvc    = SrcDvcHostname
 ```
 
 Same parameters as `vimAuthenticationContosoAuth`, **dramatically less code** — because the table already has ASIM column names. No `RawEvent.user.upn` digging required.

@@ -126,88 +126,98 @@ That's the problem the parser solves.
 We're going to save a KQL **function** — a saved query you can call by name with parameters.
 
 1. Open the workspace → **Logs**
-2. Paste the query below into the editor (don't run it yet — we will save it as a function)
+2. Paste the query below into the editor (don't run it yet — we will save it as a function).
+
+   **Important:** the parameters are *not* defined in the body. They are defined separately in the **Save as function** dialog (next step). The body just *uses* them.
 
 ```kusto
-let parser = (
-    starttime: datetime = datetime(null),
-    endtime: datetime = datetime(null),
-    targetusername_has_any: dynamic = dynamic([]),
-    srcipaddr_has_any_prefix: dynamic = dynamic([]),
-    eventtype_in: dynamic = dynamic([]),
-    eventresult: string = "*",
-    disabled: bool = false
-) {
-    ContosoAuthRaw_CL
-    | where not(disabled)
-    // ── push down time filter BEFORE parsing the dynamic blob (perf win) ──
-    | where (isnull(starttime) or TimeGenerated >= starttime)
-        and (isnull(endtime)   or TimeGenerated <= endtime)
-    // ── extract just enough to apply the cheap filters ──
-    | extend
-        _upn      = tostring(RawEvent.user.upn),
-        _srcip    = tostring(RawEvent.src.ip),
-        _rawType  = tostring(RawEvent.type),
-        _outcome  = tostring(RawEvent.outcome)
-    | extend EventType = case(
-        _rawType == "signin",          "Logon",
-        _rawType == "signout",         "Logoff",
-        _rawType == "password_change", "Other",
-        "Other")
-    | extend EventResult = case(
-        _outcome == "Success", "Success",
-        _outcome == "Failure", "Failure",
-        "Other")
-    // ── push down the rest of the cheap filters ──
-    | where (array_length(targetusername_has_any) == 0
-             or _upn has_any (targetusername_has_any))
-        and (array_length(srcipaddr_has_any_prefix) == 0
-             or has_any_ipv4_prefix(_srcip, srcipaddr_has_any_prefix))
-        and (array_length(eventtype_in) == 0
-             or EventType in (eventtype_in))
-        and (eventresult == "*" or EventResult == eventresult)
-    // ── now do the expensive full normalization, only on rows that survived ──
-    | extend
-        EventVendor        = tostring(RawEvent.vendor),
-        EventProduct       = tostring(RawEvent.product),
-        EventSchema        = "Authentication",
-        EventSchemaVersion = "0.1.4",
-        EventCount         = int(1),
-        EventStartTime     = TimeGenerated,
-        EventEndTime       = TimeGenerated,
-        EventOriginalUid   = tostring(RawEvent.id),
-        EventOriginalType  = _rawType,
-        EventResultDetails = tostring(RawEvent.reason),
-        TargetUserName     = _upn,
-        TargetUsernameType = "UPN",
-        TargetUserId       = tostring(RawEvent.user.id),
-        SrcIpAddr          = _srcip,
-        SrcPortNumber      = toint(RawEvent.src.port),
-        SrcGeoCountry      = tostring(RawEvent.src.geo.country),
-        SrcGeoCity         = tostring(RawEvent.src.geo.city),
-        SrcDvcHostname     = tostring(RawEvent.device.hostname),
-        SrcDvcOs           = tostring(RawEvent.device.os),
-        TargetAppName      = tostring(RawEvent.app.name),
-        TargetSessionId    = tostring(RawEvent.app.sessionId),
-        // ── ASIM aliases that detection rules may use ──
-        User               = _upn,
-        IpAddr             = _srcip,
-        Dvc                = tostring(RawEvent.device.hostname)
-    | project-away _upn, _srcip, _rawType, _outcome
-};
-parser(
-    starttime, endtime,
-    targetusername_has_any, srcipaddr_has_any_prefix,
-    eventtype_in, eventresult, disabled
-)
+ContosoAuthRaw_CL
+| where not(disabled)
+// ── push down time filter BEFORE parsing the dynamic blob (perf win) ──
+| where (isnull(starttime) or TimeGenerated >= starttime)
+    and (isnull(endtime)   or TimeGenerated <= endtime)
+// ── extract just enough to apply the cheap filters ──
+| extend
+    _upn      = tostring(RawEvent.user.upn),
+    _srcip    = tostring(RawEvent.src.ip),
+    _rawType  = tostring(RawEvent.type),
+    _outcome  = tostring(RawEvent.outcome)
+| extend EventType = case(
+    _rawType == "signin",          "Logon",
+    _rawType == "signout",         "Logoff",
+    _rawType == "password_change", "Other",
+    "Other")
+| extend EventResult = case(
+    _outcome == "Success", "Success",
+    _outcome == "Failure", "Failure",
+    "Other")
+// ── push down the rest of the cheap filters ──
+| where (array_length(targetusername_has_any) == 0
+         or _upn has_any (targetusername_has_any))
+    and (array_length(srcipaddr_has_any_prefix) == 0
+         or has_any_ipv4_prefix(_srcip, srcipaddr_has_any_prefix))
+    and (array_length(eventtype_in) == 0
+         or EventType in (eventtype_in))
+    and (eventresult == "*" or EventResult == eventresult)
+// ── now do the expensive full normalization, only on rows that survived ──
+| extend
+    EventVendor        = tostring(RawEvent.vendor),
+    EventProduct       = tostring(RawEvent.product),
+    EventSchema        = "Authentication",
+    EventSchemaVersion = "0.1.4",
+    EventCount         = int(1),
+    EventStartTime     = TimeGenerated,
+    EventEndTime       = TimeGenerated,
+    EventOriginalUid   = tostring(RawEvent.id),
+    EventOriginalType  = _rawType,
+    EventResultDetails = tostring(RawEvent.reason),
+    TargetUserName     = _upn,
+    TargetUsernameType = "UPN",
+    TargetUserId       = tostring(RawEvent.user.id),
+    SrcIpAddr          = _srcip,
+    SrcPortNumber      = toint(RawEvent.src.port),
+    SrcGeoCountry      = tostring(RawEvent.src.geo.country),
+    SrcGeoCity         = tostring(RawEvent.src.geo.city),
+    SrcDvcHostname     = tostring(RawEvent.device.hostname),
+    SrcDvcOs           = tostring(RawEvent.device.os),
+    TargetAppName      = tostring(RawEvent.app.name),
+    TargetSessionId    = tostring(RawEvent.app.sessionId),
+    // ── ASIM aliases that detection rules may use ──
+    User               = _upn,
+    IpAddr             = _srcip,
+    Dvc                = tostring(RawEvent.device.hostname)
+| project-away _upn, _srcip, _rawType, _outcome
 ```
+
+> **⚠️ If you try to *run* the query as-is, you'll get errors about undefined names** (`disabled`, `starttime`, …). That is **expected** — those names only exist once the editor knows they're function parameters. Skip running it; go straight to saving.
 
 3. Click **Save** (top of the query editor) → **Save as function**
 4. Fill in:
    - **Function name:** `vimAuthenticationContosoAuth`
    - **Legacy category:** `ASIM`
-   - **Parameters:** the editor will auto-detect them from the `let parser = (...)` signature. Verify all seven appear: `starttime`, `endtime`, `targetusername_has_any`, `srcipaddr_has_any_prefix`, `eventtype_in`, `eventresult`, `disabled`.
+   - **Parameters:** click **+ Add parameter** and add each row below. (Some portal versions show a single text field — in that case paste the comma-separated string further below.)
+
+     | Name | Type | Default value |
+     |------|------|---------------|
+     | `starttime` | `datetime` | `datetime(null)` |
+     | `endtime` | `datetime` | `datetime(null)` |
+     | `targetusername_has_any` | `dynamic` | `dynamic([])` |
+     | `srcipaddr_has_any_prefix` | `dynamic` | `dynamic([])` |
+     | `eventtype_in` | `dynamic` | `dynamic([])` |
+     | `eventresult` | `string` | `"*"` |
+     | `disabled` | `bool` | `false` |
+
+     If you see a single text box, paste this exact string:
+
+     ```
+     starttime:datetime=datetime(null), endtime:datetime=datetime(null), targetusername_has_any:dynamic=dynamic([]), srcipaddr_has_any_prefix:dynamic=dynamic([]), eventtype_in:dynamic=dynamic([]), eventresult:string="*", disabled:bool=false
+     ```
+
 5. **Save**.
+
+> **💡 Why this is the fix for your error:** the message `function expects 0 argument(s)` means the saved function has **zero parameters defined at the function level**. A `let parser = (...) { ... }; parser(...)` block inside the body is just an internal lambda — to the workspace, the function's public signature is whatever you typed (or didn't) in the **Parameters** UI of the Save dialog. Defining the parameters there is what makes `vimAuthenticationContosoAuth(eventresult="Failure")` work.
+>
+> If you already saved the function with no parameters: open it again (Logs → Functions tab → right-click `vimAuthenticationContosoAuth` → **Edit function details**), add the seven parameters as above, **Save**. No need to change the body.
 
 Now let's unpack **why** this looks the way it does — every section is intentional:
 
@@ -269,7 +279,7 @@ When you query `imAuthentication`, Sentinel runs every parser registered under i
 
 1. **Logs** editor → check whether the function already exists by typing `Im_AuthenticationCustom` and hovering. If it doesn't exist, we create it. If it does, we edit it (right-click → **Edit function**).
 
-2. Paste this body:
+2. Paste this body (parameters again come from the Save dialog, not the body):
 
    ```kusto
    let DisabledParsers = materialize(
@@ -287,7 +297,11 @@ When you query `imAuthentication`, Sentinel runs every parser registered under i
 
 3. **Save as function**:
    - **Function name:** `Im_AuthenticationCustom`
-   - **Parameters:** match the standard ASIM Authentication filtering parameters — `starttime:datetime`, `endtime:datetime`, `targetusername_has_any:dynamic`, `srcipaddr_has_any_prefix:dynamic`, `eventtype_in:dynamic`, `eventresult:string`, `disabled:bool=false`
+   - **Parameters** — add these seven exactly as you did for `vimAuthenticationContosoAuth` (same names, types, defaults). Or paste this string into the single-field variant:
+
+     ```
+     starttime:datetime=datetime(null), endtime:datetime=datetime(null), targetusername_has_any:dynamic=dynamic([]), srcipaddr_has_any_prefix:dynamic=dynamic([]), eventtype_in:dynamic=dynamic([]), eventresult:string="*", disabled:bool=false
+     ```
 
 > **💡 Why `union isfuzzy=true`:** if any one parser in the custom unifier fails (e.g., its underlying table doesn't exist yet because nobody's onboarded that source), `isfuzzy=true` keeps the union working with the parsers that *do* exist. Without it, one missing table breaks every detection.
 
