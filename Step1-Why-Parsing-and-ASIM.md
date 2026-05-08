@@ -87,10 +87,12 @@ In every schema, fields like `EventVendor`, `EventProduct`, `EventResult`, `SrcI
 
 ### 2. **Parsers** — the "translators"
 Per-source KQL functions that convert raw data into the schema. Naming convention:
-- `vimAuthenticationContosoAuth` — **filtering** parser (accepts time + filter parameters; faster, used in production)
-- `ASimAuthenticationContosoAuth` — **parameter-less** parser (simpler, used for ad-hoc exploration)
+- `vimAuthenticationContosoAuth` — **filtering** parser (accepts time + filter parameters; faster, used in production by detection rules)
+- `ASimAuthenticationContosoAuth` — **parameter-less** parser (a 1-line wrapper on top of the filtering one; used for ad-hoc hunting in the Logs editor)
 
-You write one pair per source.
+You write one **pair** per source per schema. The pair shares logic — the parameter-less one just calls the filtering one with no filters.
+
+> **💡 In this lab we build the filtering parser in the main flow** (Step 4.6) because that's what the Step 5 detection rule needs. The parameter-less wrapper is added in **Step 4.9 (Bonus)** — it takes ~5 minutes once the filtering one works.
 
 ### 3. **Unifying parsers** — the "Council clerk who reads everyone's transcript"
 Built-in functions that **union all parsers for a schema** into one queryable surface.

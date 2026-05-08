@@ -13,8 +13,10 @@
 - [4.4 Send the data via Bruno](#44-send-the-data-via-bruno)
 - [4.5 Verify the raw data is there](#45-verify-the-raw-data-is-there)
 - [4.6 Build the ASIM filtering parser `vimAuthenticationContosoAuth`](#46-build-the-asim-filtering-parser-vimauthenticationcontosoauth)
+- [4.6.5 What the parameters actually *do* — the librarian analogy](#465-what-the-parameters-actually-do--the-librarian-analogy)
 - [4.7 Test the parser](#47-test-the-parser)
 - [4.8 Register the parser with the unifying parser `_Im_Authentication`](#48-register-the-parser-with-the-unifying-parser-_im_authentication)
+- [4.9 Bonus — complete the pair with `ASimAuthenticationContosoAuth`](#49-bonus--complete-the-pair-with-asimauthenticationcontosoauth)
 - [What you built](#what-you-built)
 
 ---
@@ -237,6 +239,113 @@ Now let's unpack **why** this looks the way it does — every section is intenti
 
 ---
 
+## 4.6.5 What the parameters actually *do* — the librarian analogy
+
+Before we test the parser, take five minutes to internalize what those seven parameters are *for*. Once it clicks, every ASIM parser you ever read makes sense.
+
+### The analogy: a librarian with a request slip
+
+Think of `vimAuthenticationContosoAuth` as a **librarian sitting on top of a giant pile of nested log books** (your `ContosoAuthRaw_CL` table). You want a specific subset of books. You can ask in two ways:
+
+**Without parameters** — "Bring me everything you have." The librarian hauls every book out, opens each one, translates it into English (parses the nested JSON into ASIM columns), and dumps the whole pile on your desk. *Then* you go through the pile yourself looking for the bits you actually wanted. Slow, expensive, wasteful.
+
+**With parameters** — you hand the librarian a **request slip** before they start: *"Only failed sign-ins, only from these usernames, only in the last hour."* The librarian glances at the slip, walks past the irrelevant shelves entirely, opens only the books that survive the filter, and translates only those. The pile that lands on your desk is small and pre-filtered.
+
+That request slip is exactly what the parameters are. Each parameter is one line on the slip. **Empty line = "don't filter on this." Filled in = "use this filter."**
+
+### What each parameter does — in concrete terms
+
+The parameters fall into three groups.
+
+**1. Time window** (almost always used)
+
+| Parameter | Plain English |
+|-----------|---------------|
+| `starttime` | "Don't bother with anything older than this." |
+| `endtime` | "Don't bother with anything newer than this." |
+
+Filters on the table's `TimeGenerated` column **before** any JSON parsing happens. This is the cheapest, most powerful filter — `TimeGenerated` is indexed.
+
+**2. Identity / network filters** (used by detection rules)
+
+Our lab parser implements two of these; the full unifier contract has more (see Step 4.8). The shape is the same:
+
+| Parameter | Plain English | Example value |
+|-----------|---------------|---------------|
+| `targetusername_has_any` | "Only events where the *target* user (the one being signed into) matches one of these names." | `dynamic(["beth@contoso.nl"])` |
+| `srcipaddr_has_any_prefix` | "Only events where the **source IP** starts with one of these prefixes." Prefixes, not full IPs, so you can pass `["185.220.", "203.0.113."]` to match whole ranges. | `dynamic(["185.220."])` |
+
+> **💡 Why prefixes for IPs:** matching IP prefixes is essentially free in KQL (string prefix match). Matching CIDR ranges requires parsing IPs as numbers — measurably slower at scale. ASIM picks the cheap one.
+
+> **💡 Why the 12-param contract has more (`actorusername_has_any`, `srchostname_has_any`, `targetipaddr_has_any_prefix`, `dvcipaddr_has_any_prefix`, `dvchostname_has_any`):** because authentication events have multiple roles for "who/where/which device":  
+> **src** = where the user is coming **from** (their laptop's public IP)  
+> **target** = the resource being signed **into** (e.g., a SharePoint front-end's IP)  
+> **dvc** = the system **reporting** the event (e.g., the auth gateway log producer)  
+> Different rules care about different roles. The unifier's contract has to cover all of them; your `vim*` parser only has to implement the ones that make sense for *your* source.
+
+**3. Outcome filters**
+
+| Parameter | Plain English | Allowed values |
+|-----------|---------------|----------------|
+| `eventtype_in` | "Only these kinds of authentication events." | `dynamic(["Logon"])`, `dynamic(["Logon","Logoff"])`, `dynamic(["Elevate"])` |
+| `eventresult` | "Only this outcome." Single value, not a list. | `"Success"`, `"Failure"`, `"*"` for any |
+
+### The convention that ties it all together
+
+| Parameter type | Empty default means | When the caller passes a value |
+|----------------|---------------------|--------------------------------|
+| `dynamic` (lists like `*_has_any`, `*_in`) | `dynamic([])` → "no filter" | Parser keeps only rows where the column matches one of the listed values |
+| `string` (`eventresult`) | `"*"` → "no filter" | Parser keeps only rows where the column equals that single value |
+| `datetime` (`starttime`/`endtime`) | `datetime(null)` → "no filter" | Parser bounds `TimeGenerated` |
+
+That's why every filter line in your parser body looks like:
+
+```kusto
+| where (array_length(targetusername_has_any) == 0
+         or _upn has_any (targetusername_has_any))
+```
+
+Plain English: *"If the request slip is blank for this filter, let the row through. Otherwise, only let it through if it matches what's on the slip."*
+
+### The performance payoff in one picture
+
+```
+ WITHOUT pushdown (parameters ignored)        WITH pushdown (parameters honored)
+ ────────────────────────────────────        ───────────────────────────────────
+ 10,000,000 raw rows                          10,000,000 raw rows
+         │                                            │
+         ▼                                            ▼
+   parse_json on every row                      filter on TimeGenerated → 50,000 rows
+   (expensive — full JSON walk)                         │
+         │                                              ▼
+         ▼                                      extract _upn, _srcip cheaply
+   10,000,000 ASIM rows                                 │
+         │                                              ▼
+         ▼                                      filter to Failure + matching IP
+   filter to what you wanted                            │   → 200 rows
+         │                                              ▼
+         ▼                                      full JSON parse → 200 ASIM rows
+   200 rows returned                            200 rows returned
+   Cost: huge                                   Cost: tiny
+```
+
+That's why the parser body extracts `_upn` / `_srcip` / `_outcome` cheaply *first*, applies the parameter filters *next*, and only does the expensive full normalization on the survivors. **Same end result, orders of magnitude less compute.**
+
+### Why this is non-negotiable in the unifier
+
+Microsoft's `_Im_Authentication` doesn't know what your users will ask. So when a hunter writes:
+
+```kusto
+_Im_Authentication(
+    starttime=ago(1h),
+    targetusername_has_any=dynamic(["beth@contoso.nl"]),
+    eventresult="Failure")
+```
+
+…the unifier blindly forwards those named parameters to **every registered parser**, including yours. If your parser doesn't accept that signature, the call fails (and `union isfuzzy=true` swallows the error — the silent "no rows" trap from the Step 4.8 troubleshooting note).
+
+---
+
 ## 4.7 Test the parser
 
 In the **Logs** editor, run:
@@ -360,16 +469,115 @@ If you see rows — **you're done**. The built-in `_Im_Authentication` is now si
 
 ---
 
+## 4.9 Bonus — complete the pair with `ASimAuthenticationContosoAuth`
+
+> **💡 Skip if you're tight on time.** The detection rule in Step 5 will work without this section. But ASIM's full convention is **two parsers per source per schema**, and finishing the pair takes ~5 minutes.
+
+### Why two parsers, not one?
+
+ASIM defines a **pair** for every source:
+
+| Parser | Has parameters? | Used by |
+|--------|-----------------|---------|
+| `vimAuthenticationContosoAuth` | Yes (filtering) | Detection rules, scheduled queries, the unifier `_Im_Authentication`. Production paths that benefit from filter-pushdown for performance. |
+| `ASimAuthenticationContosoAuth` | No (parameter-less) | Ad-hoc hunting in the Logs editor (`ASimAuthenticationContosoAuth | take 10`). Also called by the parameter-less unifier `_ASim_Authentication`. |
+
+They share **identical body logic**. The parameter-less one is essentially a 1-line wrapper that calls the filtering one with no filters — zero duplication of parsing logic.
+
+> **💡 Analogy refresher:** if `vim*` is the librarian who accepts a request slip, `ASim*` is the same librarian when nobody hands them a slip — they just bring everything. Same person, same translation skills, no filtering applied. Useful when you're exploring and don't yet know what to filter on.
+
+### Create `ASimAuthenticationContosoAuth`
+
+1. **Logs** editor → paste this body:
+
+   ```kusto
+   vimAuthenticationContosoAuth()
+   ```
+
+   That's the entire body. One line. It calls our filtering parser with no arguments — every parameter takes its default ("no filter"), so we get all rows, fully normalized.
+
+2. **Save** → **Save as function**:
+   - **Function name:** `ASimAuthenticationContosoAuth`
+   - **Legacy category:** `ASIM`
+   - **Parameters:** **none.** Leave the parameters list empty. That's the point.
+3. **Save**.
+
+Verify:
+
+```kusto
+ASimAuthenticationContosoAuth
+| summarize count() by EventResult, EventType
+```
+
+Note the lack of `()` — because there are no parameters, you can call it like a table. Hunters love this.
+
+### Register it with the parameter-less custom unifier `ASim_AuthenticationCustom`
+
+The parameter-less built-in unifier is **`_ASim_Authentication`**. Just like `_Im_Authentication` auto-discovers `Im_AuthenticationCustom`, the parameter-less unifier auto-discovers **`ASim_AuthenticationCustom`** (note: no leading underscore on the custom name; **no** `Im_` prefix — it's `ASim_`).
+
+1. **Logs** editor → paste this body:
+
+   ```kusto
+   union isfuzzy=true
+       ASimAuthenticationContosoAuth
+       // add other parameter-less ASim*Authentication* parsers here as you onboard sources
+   ```
+
+2. **Save** → **Save as function**:
+   - **Function name:** `ASim_AuthenticationCustom` (case-sensitive)
+   - **Parameters:** **none.**
+3. **Save**.
+
+Verify:
+
+```kusto
+_ASim_Authentication
+| where EventVendor == "ContosoAuth"
+| summarize count() by EventResult, EventType
+```
+
+If rows come back — your source is now fully ASIM-compliant on both surfaces.
+
+### Recap of all four functions
+
+```
+                    Detection / scheduled rules         Hunters at the keyboard
+                                  │                                │
+                                  ▼                                ▼
+                       _Im_Authentication(…)            _ASim_Authentication
+                       (built-in, filtering)            (built-in, parameter-less)
+                                  │                                │
+                                  ▼                                ▼
+                       Im_AuthenticationCustom         ASim_AuthenticationCustom
+                       (yours, 12 params)              (yours, no params)
+                                  │                                │
+                                  ▼                                ▼
+                       vimAuthenticationContosoAuth    ASimAuthenticationContosoAuth
+                       (yours, filtering)              (yours, parameter-less wrapper)
+                                  │                                │
+                                  └──────────────┬──────────────┘
+                                                 ▼
+                                          ContosoAuthRaw_CL
+```
+
+Four functions total, but only **two** contain real parsing logic (`vim*` for raw, and we'll add `vim*Ingest` in Step 5 for the ingest-time table). The other two are convention wrappers.
+
+> **🔍 Explore:** if you also want the ingest-time table on the `_ASim_Authentication` surface, repeat the bonus once more in Step 5: create `ASimAuthenticationContosoAuthIngest` (one-liner calling `vimAuthenticationContosoAuthIngest()`) and add it to `ASim_AuthenticationCustom`.
+
+---
+
 ## What you built
 
 - [ ] Custom table `ContosoAuthRaw_CL` storing the original nested JSON in a `RawEvent` dynamic column
 - [ ] DCR `dcr-contosoauth-raw` with a passthrough transform
 - [ ] Bruno request `03 - Send to Raw DCR` returning **204**
 - [ ] KQL function `vimAuthenticationContosoAuth` — filtering parser, ASIM Authentication shape
+- [ ] Conceptual grasp of what the parameters do (the librarian and the request slip)
 - [ ] `Im_AuthenticationCustom` registered with our parser via `union isfuzzy=true`
 - [ ] `_Im_Authentication | where EventVendor == "ContosoAuth"` returns rows
+- [ ] *(Bonus, optional)* `ASimAuthenticationContosoAuth` wrapper + `ASim_AuthenticationCustom` unifier; `_ASim_Authentication | where EventVendor == "ContosoAuth"` returns rows
 
-✅ **Pipeline 2 of 2 complete.** The same 20 events now exist in two tables, parsed two different ways, and **both** are reachable through `imAuthentication`. Step 5 will write one rule that fires on both.
+✅ **Pipeline 2 of 2 complete.** The same 20 events now exist in two tables, parsed two different ways, and **both** are reachable through `_Im_Authentication`. Step 5 will write one rule that fires on both.
 
 ---
 
