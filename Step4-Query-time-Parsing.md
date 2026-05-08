@@ -367,7 +367,7 @@ If you see rows — **you're done**. The built-in `_Im_Authentication` is now si
 - [ ] Bruno request `03 - Send to Raw DCR` returning **204**
 - [ ] KQL function `vimAuthenticationContosoAuth` — filtering parser, ASIM Authentication shape
 - [ ] `Im_AuthenticationCustom` registered with our parser via `union isfuzzy=true`
-- [ ] `imAuthentication | where EventVendor == "ContosoAuth"` returns rows
+- [ ] `_Im_Authentication | where EventVendor == "ContosoAuth"` returns rows
 
 ✅ **Pipeline 2 of 2 complete.** The same 20 events now exist in two tables, parsed two different ways, and **both** are reachable through `imAuthentication`. Step 5 will write one rule that fires on both.
 
