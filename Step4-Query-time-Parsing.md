@@ -294,9 +294,11 @@ When you query `_Im_Authentication`, Sentinel runs every built-in source-specifi
 
 ### Create `Im_AuthenticationCustom`
 
+> **⚠️ The signature must match Microsoft's contract exactly.** The built-in `_Im_Authentication` calls `Im_AuthenticationCustom` *positionally* with **12 specific parameters in a specific order**. If your signature doesn't match, the call fails — and because we use `union isfuzzy=true`, the failure is **silent**: you just see no rows, no error. Don't reduce or reorder these parameters even if your inner parser doesn't use them.
+
 1. **Logs** editor → check whether the function already exists by typing `Im_AuthenticationCustom` and hovering. If it doesn't exist, we create it. If it does, we edit it (Functions tab → right-click → **Edit function**).
 
-2. Paste this body (parameters again come from the Save dialog, not the body):
+2. Paste this body (parameters come from the Save dialog, not the body). The body declares 12 inbound params (Microsoft's contract) and forwards only the ones our inner parser actually uses:
 
    ```kusto
    let DisabledParsers = materialize(
@@ -306,19 +308,36 @@ When you query `_Im_Authentication`, Sentinel runs every built-in source-specifi
        | distinct SourceSpecificParser
    );
    union isfuzzy=true
-       (vimAuthenticationContosoAuth(starttime, endtime, targetusername_has_any,
-                                     srcipaddr_has_any_prefix, eventtype_in,
-                                     eventresult, ('ExcludevimAuthenticationContosoAuth' in (DisabledParsers))))
+       vimAuthenticationContosoAuth(
+           starttime, endtime,
+           targetusername_has_any, srcipaddr_has_any_prefix,
+           eventtype_in, eventresult,
+           ('ExcludevimAuthenticationContosoAuth' in (DisabledParsers)))
        // add additional vim*Authentication* parsers here as you onboard more sources
    ```
 
 3. **Save as function**:
    - **Function name:** `Im_AuthenticationCustom` (case-sensitive — the built-in unifier looks for this exact name)
-   - **Parameters** — add these seven exactly as you did for `vimAuthenticationContosoAuth` (same names, types, defaults). Or paste this string into the single-field variant:
+   - **Parameters** — add these **12 parameters in this exact order** using **+ Add parameter** for each row (do **not** use the single text-box variant — it silently mangles types):
 
-     ```
-     starttime:datetime=datetime(null), endtime:datetime=datetime(null), targetusername_has_any:dynamic=dynamic([]), srcipaddr_has_any_prefix:dynamic=dynamic([]), eventtype_in:dynamic=dynamic([]), eventresult:string="*", disabled:bool=false
-     ```
+     | # | Name | Type | Default value |
+     |---|------|------|---------------|
+     | 1 | `starttime` | `datetime` | `datetime(null)` |
+     | 2 | `endtime` | `datetime` | `datetime(null)` |
+     | 3 | `targetusername_has_any` | `dynamic` | `dynamic([])` |
+     | 4 | `actorusername_has_any` | `dynamic` | `dynamic([])` |
+     | 5 | `srcipaddr_has_any_prefix` | `dynamic` | `dynamic([])` |
+     | 6 | `srchostname_has_any` | `dynamic` | `dynamic([])` |
+     | 7 | `targetipaddr_has_any_prefix` | `dynamic` | `dynamic([])` |
+     | 8 | `dvcipaddr_has_any_prefix` | `dynamic` | `dynamic([])` |
+     | 9 | `dvchostname_has_any` | `dynamic` | `dynamic([])` |
+     | 10 | `eventtype_in` | `dynamic` | `dynamic([])` |
+     | 11 | `eventresultdetails_in` | `dynamic` | `dynamic([])` |
+     | 12 | `eventresult` | `string` | `"*"` |
+
+> **💡 Why 12 parameters here vs. 7 on `vimAuthenticationContosoAuth`:** the *inner* `vim*` parser is your private contract — it can have any reasonable subset of parameters. But the *unifying* `Im_AuthenticationCustom` has a **fixed contract with Microsoft's built-in unifier**, defined in [the manage-parsers doc](https://learn.microsoft.com/en-us/azure/sentinel/normalization-manage-parsers#add-a-custom-parser-to-a-built-in-unifying-parser). Don't deviate.
+
+> **💡 Debugging tip when "no rows" makes you suspicious:** temporarily flip `union isfuzzy=true` to `union isfuzzy=false` in `Im_AuthenticationCustom` and re-run `_Im_Authentication`. Real errors (wrong arg count, wrong types, missing inner function) will surface instead of being swallowed. Flip it back to `true` once it works.
 
 > **💡 Why `union isfuzzy=true`:** if any one parser in the custom unifier fails (e.g., its underlying table doesn't exist yet because nobody's onboarded that source), `isfuzzy=true` keeps the union working with the parsers that *do* exist. Without it, one missing table breaks every detection.
 
