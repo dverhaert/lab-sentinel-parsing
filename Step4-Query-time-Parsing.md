@@ -450,6 +450,22 @@ _Im_Authentication(
 
 …the unifier blindly forwards those **named** parameters to every registered parser, including yours. If your parser doesn't accept that exact signature, the call fails — and `union isfuzzy=true` swallows the error (the silent "no rows" trap from the Step 4.8 troubleshooting note).
 
+### How were these parameters chosen — and where do I find the list for *other* schemas?
+
+The parameter list isn't ad-hoc. **Microsoft publishes a filtering-parameter contract for every ASIM schema.** Authentication's contract is the 12 we wired up in Step 4.8; NetworkSession's is bigger (~25 — protocols, ports, byte counts); ProcessEvent's is different again. Same mechanic everywhere; the *list* is per-schema.
+
+The criterion Microsoft uses is consistent: **a column makes the parameter list when it's both (a) frequently filtered on by detection rules in that domain, and (b) cheap enough to evaluate before the expensive normalization step.** For Authentication that gave us "time + who + where-from + what kind + outcome" — the filter vocabulary almost every auth detection inherits, whether it's brute force, impossible travel, MFA fatigue, password spray, account lockout, or first-time admin elevation. Filters outside that list (geo country, app name, OS, session ID) still work — they just run as post-filters on already-narrowed rows, which is "good but not best" on the performance hierarchy from earlier in this section.
+
+**Reference pages** — bookmark these for when you build your next parser:
+
+- 📖 [ASIM schemas — master index](https://learn.microsoft.com/azure/sentinel/normalization-about-schemas) — the table of every schema and its current version. Start here.
+- 📖 [Authentication schema (this lab)](https://learn.microsoft.com/azure/sentinel/normalization-schema-authentication) — the 12-param contract you wired up in 4.8.
+- 📖 Other common schemas, each with its own filtering-parameter contract: [Network Session](https://learn.microsoft.com/azure/sentinel/normalization-schema-network) · [Process Event](https://learn.microsoft.com/azure/sentinel/normalization-schema-process-event) · [File Event](https://learn.microsoft.com/azure/sentinel/normalization-schema-file-event) · [DNS](https://learn.microsoft.com/azure/sentinel/normalization-schema-dns) · [Web Session](https://learn.microsoft.com/azure/sentinel/normalization-schema-web) · [Registry Event](https://learn.microsoft.com/azure/sentinel/normalization-schema-registry-event) · [User Management](https://learn.microsoft.com/azure/sentinel/normalization-schema-user-management) · [DHCP](https://learn.microsoft.com/azure/sentinel/normalization-schema-dhcp)
+- 📖 [Develop a custom ASIM parser](https://learn.microsoft.com/azure/sentinel/normalization-develop-parsers) — Microsoft's official how-to. The body conventions you saw in 4.6 come from this page.
+- 📖 [Manage parsers](https://learn.microsoft.com/azure/sentinel/normalization-manage-parsers) — the unifier-contract details (the source of the 12-param signature in 4.8) and the `ASimDisabledParsers` watchlist pattern.
+
+> **⚠️ Schemas evolve.** Authentication is at version `0.1.4` today; future versions can add or rename parameters. The pattern is durable; the exact list is not. The schema page is always the source of truth for the current contract.
+
 ---
 
 ## 4.7 Test the parser
