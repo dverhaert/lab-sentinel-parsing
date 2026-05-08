@@ -29,7 +29,7 @@ Deploy a single ASIM-based brute-force analytic rule and watch it fire on **both
 
 ## 5.1 Wire the ingest-time table into ASIM too
 
-Step 4 plugged `ContosoAuthRaw_CL` (via `vimAuthenticationContosoAuth`) into `imAuthentication`. The ingest-time table `ContosoAuthIngest_CL` from Step 3 is **already in ASIM shape**, but it's *not yet visible* through `imAuthentication` — we never registered it.
+Step 4 plugged `ContosoAuthRaw_CL` (via `vimAuthenticationContosoAuth`) into the built-in `_Im_Authentication` unifier (through `Im_AuthenticationCustom`). The ingest-time table `ContosoAuthIngest_CL` from Step 3 is **already in ASIM shape**, but it's *not yet visible* through `_Im_Authentication` — we never registered it.
 
 We'll add a **trivial wrapper parser** so that table also flows through the unifier. This gives us the perfect side-by-side demo: one detection rule, two custom tables, both detected.
 
@@ -85,13 +85,13 @@ union isfuzzy=true
 
 **Save**. Then verify both pipelines show up in the unifier:
 
+You should see **`AuthGateway`** with **40 events** total (20 from each table). Same logical events, two storage strategies, one query interface. *That's ASIM working.*
+
 ```kusto
-imAuthentication
+_Im_Authentication
 | where EventVendor == "ContosoAuth"
 | summarize Events = count() by EventProduct
 ```
-
-You should see **`AuthGateway`** with **40 events** total (20 from each table). Same logical events, two storage strategies, one query interface. *That's ASIM working.*
 
 ---
 
@@ -106,7 +106,7 @@ Notice what's **not** in that sentence:
 - No mention of `ContosoAuth`, `event.outcome`, `event.user.upn`
 - No mention of nested JSON or transformations
 
-The rule operates entirely on **ASIM vocabulary**, and `imAuthentication` does the rest.
+The rule operates entirely on **ASIM vocabulary**, and `_Im_Authentication` does the rest.
 
 You have two ways to ship this rule. Pick one.
 
@@ -150,7 +150,7 @@ If the content pack isn't available in your tenant or you want to *see* the rule
    let lookback = 1h;
    let window   = 5m;
    let threshold = 5;
-   imAuthentication
+   _Im_Authentication
    | where TimeGenerated > ago(lookback)
    | where EventType == "Logon" and EventResult == "Failure"
    | summarize
@@ -177,7 +177,7 @@ Let's read the query out loud — **the only thing it knows is ASIM**:
 
 | Clause | What it depends on |
 |--------|-------------------|
-| `imAuthentication` | The unifying parser. **No table names.** |
+| `_Im_Authentication` | The built-in unifying parser. **No table names.** |
 | `EventType == "Logon"` | ASIM vocabulary value. Same on every source. |
 | `EventResult == "Failure"` | ASIM vocabulary value. Same on every source. |
 | `summarize ... by TargetUserName, SrcIpAddr` | ASIM column names. Same on every source. |
@@ -198,7 +198,7 @@ Run the rule's query manually with a wide lookback:
 let lookback = 365d;     // wide enough to catch the sample data regardless of when you run
 let window   = 5m;
 let threshold = 5;
-imAuthentication
+_Im_Authentication
 | where TimeGenerated > ago(lookback)
 | where EventType == "Logon" and EventResult == "Failure"
 | summarize
@@ -240,7 +240,7 @@ That is the entire point of ASIM. **The detection author writes against the sche
 
 - [ ] `vimAuthenticationContosoAuthIngest` — trivial wrapper for the already-flat ingest-time table
 - [ ] Updated `Im_AuthenticationCustom` to union both `vim*` parsers
-- [ ] An analytic rule (built-in template **or** custom) querying `imAuthentication`
+- [ ] An analytic rule (built-in template **or** custom) querying `_Im_Authentication`
 - [ ] Entity mapping configured (`Account` / `IP`)
 - [ ] Verified the rule logic detects the brute-force burst in **both** pipelines
 - [ ] Internalized that the rule has zero source-specific logic — that's the entire point

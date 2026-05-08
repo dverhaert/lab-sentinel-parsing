@@ -14,14 +14,14 @@
 - [4.5 Verify the raw data is there](#45-verify-the-raw-data-is-there)
 - [4.6 Build the ASIM filtering parser `vimAuthenticationContosoAuth`](#46-build-the-asim-filtering-parser-vimauthenticationcontosoauth)
 - [4.7 Test the parser](#47-test-the-parser)
-- [4.8 Register the parser with the unifying parser `imAuthentication`](#48-register-the-parser-with-the-unifying-parser-imauthentication)
+- [4.8 Register the parser with the unifying parser `_Im_Authentication`](#48-register-the-parser-with-the-unifying-parser-_im_authentication)
 - [What you built](#what-you-built)
 
 ---
 
 ## Goal
 
-Build the **second** pipeline: the **query-time** path. Data is stored **as-is** in nested form, and a KQL parser function reshapes it into ASIM **on every query**. We then plug that parser into the unifying `imAuthentication` parser so detection rules pick it up automatically.
+Build the **second** pipeline: the **query-time** path. Data is stored **as-is** in nested form, and a KQL parser function reshapes it into ASIM **on every query**. We then plug that parser into the built-in unifying `_Im_Authentication` parser so detection rules pick it up automatically.
 
 **Difficulty:** Medium  
 **Duration:** ~45 minutes  
@@ -41,7 +41,7 @@ Bruno  ──►  DCE  ──►  DCR (no transform)  ──►  ContosoAuthRaw_
                                             Im_AuthenticationCustom        ◄── you register your parser here
                                                              │
                                                              ▼
-                                                  imAuthentication          ◄── built-in unifying parser
+                                                 _Im_Authentication         ◀── built-in unifying parser
                                                              │
                                                              ▼
                                             (any ASIM Authentication query/rule)
@@ -223,7 +223,7 @@ Now let's unpack **why** this looks the way it does — every section is intenti
 
 | Block | Why |
 |-------|-----|
-| `let parser = (...)` with default values | This is the **standard ASIM filtering parser signature**. The unifying `imAuthentication` parser will call us with these exact parameter names. Defaults (`datetime(null)`, empty arrays, `"*"`) mean "no filter — return everything." |
+| The seven parameters declared in the Save dialog | This is the **standard ASIM filtering parser signature**. The unifying `_Im_Authentication` parser (via `Im_AuthenticationCustom`) will call us with these exact parameter names. Defaults (`datetime(null)`, empty arrays, `"*"`) mean "no filter — return everything." |
 | `where not(disabled)` | The `disabled` parameter is the kill-switch. If a detection rule passes `disabled=true`, the parser short-circuits and returns nothing. ASIM uses this for emergency disabling without breaking dependent queries. |
 | Time filter applied **before** parsing | The whole point of a filtering parser. `TimeGenerated` is the table's indexed column — filtering on it first means the engine never reads rows outside the window. |
 | `_upn` / `_srcip` / `_rawType` / `_outcome` extracted **early** | We need them for filter pushdown. We extract them once (cheap), then filter, then do the heavy normalization only on survivors. |
@@ -267,17 +267,34 @@ vimAuthenticationContosoAuth(eventtype_in=dynamic(["Logon"]))
 
 ---
 
-## 4.8 Register the parser with the unifying parser `imAuthentication`
+## 4.8 Register the parser with the unifying parser `_Im_Authentication`
 
 This is the magic step that makes Step 5's detection rule fire on our custom data.
 
-When you query `imAuthentication`, Sentinel runs every parser registered under it. Out of the box it knows about Microsoft sources (AAD, Windows Security Events, etc.). To add ours, we register it via the **`Im_AuthenticationCustom`** custom unifying parser.
+### Two flavors of unifying parser — know which one you have
 
-> **💡 Why a separate "custom" parser instead of editing the built-in one:** the built-in `imAuthentication` is owned by Microsoft and gets updated. If you edited it, your changes would be overwritten by every Sentinel content release. `Im_AuthenticationCustom` is **your** function — `imAuthentication` calls it as a contributor. Microsoft can ship updates to the unifier without touching your sources.
+Sentinel has **two** sets of ASIM unifying parsers, with deliberately different names:
 
-### Create or update `Im_AuthenticationCustom`
+| Flavor | Function name | Available out of the box? |
+|--------|---------------|---------------------------|
+| **Built-in** (Microsoft-managed, ships in every workspace) | `_Im_Authentication` (leading underscore + capital I) | ✅ Yes |
+| **Workspace-deployed** (deploy from [aka.ms/DeployASIM](https://aka.ms/DeployASIM) ARM template) | `imAuthentication` (no underscore) | ❌ Only after deploying |
 
-1. **Logs** editor → check whether the function already exists by typing `Im_AuthenticationCustom` and hovering. If it doesn't exist, we create it. If it does, we edit it (right-click → **Edit function**).
+**For this lab we use the built-in `_Im_Authentication`** — it's already there, no extra deployment.
+
+> **⚠️ If you ever see `Failed to resolve table or column expression named 'imAuthentication'`** — you used the workspace-deployed name without deploying it. Switch to `_Im_Authentication` (or deploy the ARM template).
+
+📖 [Built-in unifying parsers](https://learn.microsoft.com/en-us/azure/sentinel/normalization-about-parsers#unifying-parsers)
+
+### How `Im_AuthenticationCustom` plugs in (no manual wiring needed)
+
+When you query `_Im_Authentication`, Sentinel runs every built-in source-specific parser **plus** — if it exists — a function called **`Im_AuthenticationCustom`**. That convention name is hard-coded into the built-in unifier; we just need to create a function with that exact name.
+
+> **💡 Why a separate "custom" parser instead of editing the built-in one:** the built-in `_Im_Authentication` is owned by Microsoft and gets updated as new sources are added. If you could edit it, your changes would be overwritten by every Sentinel content release. `Im_AuthenticationCustom` is **your** function — the built-in unifier calls it as a contributor. Microsoft can ship updates to its parser without touching your sources, and your custom sources stay registered.
+
+### Create `Im_AuthenticationCustom`
+
+1. **Logs** editor → check whether the function already exists by typing `Im_AuthenticationCustom` and hovering. If it doesn't exist, we create it. If it does, we edit it (Functions tab → right-click → **Edit function**).
 
 2. Paste this body (parameters again come from the Save dialog, not the body):
 
@@ -296,7 +313,7 @@ When you query `imAuthentication`, Sentinel runs every parser registered under i
    ```
 
 3. **Save as function**:
-   - **Function name:** `Im_AuthenticationCustom`
+   - **Function name:** `Im_AuthenticationCustom` (case-sensitive — the built-in unifier looks for this exact name)
    - **Parameters** — add these seven exactly as you did for `vimAuthenticationContosoAuth` (same names, types, defaults). Or paste this string into the single-field variant:
 
      ```
@@ -311,16 +328,16 @@ When you query `imAuthentication`, Sentinel runs every parser registered under i
 ### Verify the unifier picks us up
 
 ```kusto
-imAuthentication
+_Im_Authentication
 | where EventVendor == "ContosoAuth"
 | summarize count() by EventResult, EventType
 ```
 
-If you see rows — **you're done**. The built-in `imAuthentication` is now silently calling our custom parser, parsing our raw blob into ASIM, and presenting it alongside whatever Microsoft sources are also wired up.
+If you see rows — **you're done**. The built-in `_Im_Authentication` is now silently calling `Im_AuthenticationCustom`, which calls our `vimAuthenticationContosoAuth`, which parses the raw blob into ASIM — all in one query, presenting our `ContosoAuth` data alongside whatever Microsoft sources are also wired up.
 
-> **🔍 Explore:** `imAuthentication | summarize count() by EventVendor` — see *every* vendor whose parser is plugged into the unifier. In a real environment you'll see Microsoft Entra ID, Windows Security Events, third-party sources, and now `ContosoAuth` sitting beside them.
+> **🔍 Explore:** `_Im_Authentication | summarize count() by EventVendor` — see *every* vendor whose parser is plugged into the unifier. In a real environment you'll see Microsoft Entra ID, Windows Security Events, third-party sources, and now `ContosoAuth` sitting beside them.
 
-📖 [`imAuthentication` reference](https://learn.microsoft.com/en-us/azure/sentinel/normalization-about-parsers#unifying-parsers)
+📖 [`_Im_Authentication` reference](https://learn.microsoft.com/en-us/azure/sentinel/normalization-about-parsers#unifying-parsers)
 
 ---
 

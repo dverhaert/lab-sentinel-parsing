@@ -1,0 +1,17 @@
+[
+  {
+    "timestamp": "2025-11-04T08:01:12Z",
+    "event": {
+      "id": "0f2c0ad8-5e8f-4a39-9e87-1a5d9c001001",
+      "vendor": "ContosoAuth",
+      "product": "AuthGateway",
+      "version": "1.4",
+      "type": "signin",
+      "outcome": "Success",
+      "reason": "",
+      "user": { "id": "a1", "name": "Alex Janssen", "upn": "alex@contoso.nl", "tenantId": "contoso.nl" },
+      "src": { "ip": "40.112.72.205", "port": 44321, "asn": 8075, "geo": { "country": "NL", "city": "Amsterdam" } },
+      "device": { "hostname": "LAPTOP-ALEX", "os": "Windows", "osVersion": "11.0.26100" },
+      "app": { "name": "SharePoint", "sessionId": "sp-6a0a" }
+    }
+  }

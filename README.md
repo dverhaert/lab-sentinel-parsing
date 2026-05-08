@@ -7,7 +7,7 @@ By the end of this 3-hour TTT session, you will have:
 1. **Understood why parsing matters** — Why custom log sources need normalization before they're useful in detections, and what the **Advanced Security Information Model (ASIM)** brings to the table
 2. **Sent custom log data to Sentinel using a Logs Ingestion API** — Via Bruno, an app registration, a DCE, and a DCR (the modern, supported pipeline)
 3. **Implemented ingest-time parsing** — Used a **DCR `transformKql`** to flatten and normalize the JSON *before* it lands in a custom table
-4. **Implemented query-time parsing** — Wrote an **ASIM KQL parser function** that normalizes the same data *on read*, plugged it into the unifying `imAuthentication` parser
+4. **Implemented query-time parsing** — Wrote an **ASIM KQL parser function** that normalizes the same data *on read*, plugged it into the built-in unifying `_Im_Authentication` parser
 5. **Run one detection rule against both** — Deployed an ASIM Authentication brute-force analytic rule that fires across both pipelines (and any other ASIM-compliant source) without modification
 
 This session is **build-first, with explainers throughout** — every "do this" step includes a short *why* so you understand the concept, not just the clicks.
@@ -48,7 +48,7 @@ We are taking the **same fictional log source** (`ContosoAuth` sign-in events) a
               └─────────────────┬──────────────────┘
                                 │
                                 ▼
-                ASIM unifying parser:  imAuthentication
+                ASIM unifying parser:  _Im_Authentication
                                 │
                                 ▼
               Analytic Rule:  Brute-force (ASIM)
@@ -66,7 +66,7 @@ Why two paths? Because Sentinel actually offers both, and the choice has real co
 | 1 | [Why Parsing & ASIM](Step1-Why-Parsing-and-ASIM.md) | Easy | ~25 min | Conceptual: the language analogy, the ASIM model, ingest-time vs query-time. **No clicks.** |
 | 2 | [Prepare the Lab](Step2-Prepare-the-Lab.md) | Easy | ~30 min | App registration, DCE, Bruno, sample data. **One-time setup.** |
 | 3 | [Ingest-time Parsing](Step3-Ingest-time-Parsing.md) | Medium | ~40 min | Custom table + DCR with `transformKql`. Send data. Verify. |
-| 4 | [Query-time Parsing](Step4-Query-time-Parsing.md) | Medium | ~45 min | Custom table + passthrough DCR. Build the ASIM parser. Plug into `imAuthentication`. |
+| 4 | [Query-time Parsing](Step4-Query-time-Parsing.md) | Medium | ~45 min | Custom table + passthrough DCR. Build the ASIM parser. Plug into `_Im_Authentication`. |
 | 5 | [ASIM Detection Rule](Step5-ASIM-Detection-Rule.md) | Medium | ~25 min | Deploy the brute-force rule. Watch it fire on both paths. |
 | 6 | [Closeout & Decision Matrix](Step6-Closeout.md) | — | ~15 min | Recap, when to choose what, cleanup. |
 

@@ -96,13 +96,15 @@ You write one pair per source.
 Built-in functions that **union all parsers for a schema** into one queryable surface.
 
 ```
-imAuthentication           ← filtering, used by detections
-ASimAuthentication         ← parameter-less, used for hunting
+_Im_Authentication          ← filtering, used by detections (built-in, ships in every workspace)
+_ASim_Authentication        ← parameter-less, used for hunting
 ```
 
-When you query `imAuthentication`, Sentinel transparently calls `vimAuthenticationAAD`, `vimAuthenticationOkta`, `vimAuthenticationContosoAuth`, etc., and returns the union — all already in ASIM shape.
+> **💡 Note on naming:** Microsoft also offers a *workspace-deployed* version of these unifiers (`imAuthentication` / `ASimAuthentication`, no leading underscore) that you can install via the [aka.ms/DeployASIM](https://aka.ms/DeployASIM) ARM template. They're functionally equivalent. **In this lab we use the built-in `_Im_Authentication`** because it's already there — no extra deployment step. If you ever see a `Failed to resolve table or column expression named 'imAuthentication'` error, you've hit the difference.
 
-> **💡 Why it works:** the unifying parser is *also* a KQL function. You can extend it (add your own custom source) by registering your parser through the **`Im_AuthenticationCustom`** custom unifying parser — which we will do in Step 4.
+When you query `_Im_Authentication`, Sentinel transparently calls `vimAuthenticationAAD`, `vimAuthenticationOkta`, `vimAuthenticationContosoAuth`, etc., and returns the union — all already in ASIM shape.
+
+> **💡 Why it works:** the unifying parser is *also* a KQL function. You can extend it (add your own custom source) by registering your parser through the **`Im_AuthenticationCustom`** custom unifying parser — which the built-in unifier automatically calls if it exists. We will create that in Step 4.
 
 📖 [Develop a custom ASIM parser](https://learn.microsoft.com/en-us/azure/sentinel/normalization-develop-parsers)
 
@@ -139,7 +141,7 @@ You have ten sign-in sources. You want to detect **brute-force attacks** (many f
 - Onboarding source 11 = writing rule 11
 
 **With ASIM:**
-- 1 rule, queries `imAuthentication`
+- 1 rule, queries `_Im_Authentication`
 - Filter logic written once: `where EventResult == "Failure"` and `summarize count() by TargetUserName, SrcIpAddr`
 - Onboarding source 11 = write a parser, register it in `Im_AuthenticationCustom`. **Zero change to the rule.**
 

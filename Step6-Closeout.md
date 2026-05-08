@@ -24,7 +24,7 @@ In one session you:
 2. Stood up the modern, supported ingestion pipeline: **app reg → Logs Ingestion API → DCE → DCR → custom table**, driven from **Bruno**
 3. Built **ingest-time parsing** with a DCR `transformKql` — flattening nested JSON to ASIM columns before storage
 4. Built **query-time parsing** with an ASIM filtering parser function — keeping data raw and translating on read
-5. Registered both pipelines with `Im_AuthenticationCustom`, so the built-in `imAuthentication` unifier exposes them
+5. Registered both pipelines with `Im_AuthenticationCustom`, so the built-in `_Im_Authentication` unifier exposes them
 6. Ran a single brute-force detection rule that fired on **both** pipelines without any source-specific knowledge
 
 The same 20 sample events now exist in your workspace twice, queryable through one ASIM surface, watched by one rule.
@@ -56,7 +56,7 @@ In practice, mature Sentinel deployments often run **both**: a richly normalized
 - **Storage** is billed per GB ingested **after** the transform runs. So an ingest-time `project` that drops half the fields literally halves your bill on that source. Query-time parsing has no such lever — you store everything.
 - **Query-time parsers** add CPU cost on every run. ASIM's filter-pushdown convention (the `*_has_any`, `eventtype_in`, etc. parameters) is what makes it tolerable. **Always honor that contract** when writing your own parsers.
 - **`union isfuzzy=true`** in unifying parsers swallows errors silently. Periodically run each `vim*` directly to make sure none have quietly broken.
-- **Scheduled rule frequency** matters: a rule running every 5 min querying `imAuthentication` over a 1h window means the same data is parsed ~12× per hour at query time. Multiply by the number of ASIM rules. This is the cost case for ingest-time on hot sources.
+- **Scheduled rule frequency** matters: a rule running every 5 min querying `_Im_Authentication` over a 1h window means the same data is parsed ~12× per hour at query time. Multiply by the number of ASIM rules. This is the cost case for ingest-time on hot sources.
 
 ---
 
@@ -65,7 +65,7 @@ In practice, mature Sentinel deployments often run **both**: a richly normalized
 - **The `https://monitor.azure.com//.default` double slash.** Not a typo. Don't "fix" it.
 - **Forgetting `TimeGenerated`** in the transform. The destination table requires it; ingest fails silently if the column doesn't exist or isn't a `datetime`.
 - **403s on first POST.** RBAC propagation is 1–3 min. Wait, retry.
-- **Editing the built-in `imAuthentication`** instead of using `Im_AuthenticationCustom`. Your edits will be wiped by the next content release.
+- **Editing the built-in `_Im_Authentication`** — you can't, and shouldn't try; use `Im_AuthenticationCustom` (which the built-in auto-invokes). Don't confuse it with the workspace-deployed `imAuthentication` (no underscore) which only exists if you deployed [aka.ms/DeployASIM](https://aka.ms/DeployASIM).
 - **Not mapping `EventType` / `EventResult` to ASIM-allowed values.** Detections filter by ASIM vocabulary, not by raw vendor strings. `"signin"` ≠ `"Logon"`.
 - **`project` in the DCR transform that drops a column you later wish you had.** It's gone. Re-ingestion is the only fix.
 - **Writing a query-time parser without filter pushdown.** The parameters aren't decoration; rules that pass `eventresult="Failure"` expect you to *use* it before the heavy parsing.
