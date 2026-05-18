@@ -1,8 +1,8 @@
-# Microsoft Sentinel Parsing — Team Tech Time (TTT)
+# Microsoft Sentinel Parsing — Lab Guide
 
 ## Goal of this session
 
-By the end of this 3-hour TTT session, you will have:
+By the end of this 3-hour lab session, you will have:
 
 1. **Understood why parsing matters** — Why custom log sources need normalization before they're useful in detections, and what the **Advanced Security Information Model (ASIM)** brings to the table
 2. **Sent custom log data to Sentinel using a Logs Ingestion API** — Via Bruno, an app registration, a DCE, and a DCR (the modern, supported pipeline)

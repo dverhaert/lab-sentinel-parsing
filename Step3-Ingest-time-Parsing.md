@@ -1,3 +1,4 @@
+> **Tip:** Use a unique suffix for all resource names (e.g., `dcr-auth-ingestdv`, `CustomAuthIngest_CL`) to avoid naming collisions in shared environments.
 # Step 3 — Ingest-time Parsing
 
 [← Back: Step 2](Step2-Prepare-the-Lab.md) | [Next: Step 4 — Query-time Parsing →](Step4-Query-time-Parsing.md)
@@ -6,15 +7,17 @@
 
 ## Table of Contents
 
-- [Goal](#goal)
-- [3.1 What we're building (and why)](#31-what-were-building-and-why)
-- [3.2 Create the custom table + DCR (one click, both at once)](#32-create-the-custom-table--dcr-one-click-both-at-once)
-- [3.3 Add the transform that reshapes the JSON](#33-add-the-transform-that-reshapes-the-json)
-- [3.4 Grant the app registration permission on the DCR](#34-grant-the-app-registration-permission-on-the-dcr)
-- [3.5 Capture the DCR Immutable ID + Stream name](#35-capture-the-dcr-immutable-id--stream-name)
-- [3.6 Build the "send data" request in Bruno](#36-build-the-send-data-request-in-bruno)
-- [3.7 Verify the data in Sentinel](#37-verify-the-data-in-sentinel)
-- [What you built](#what-you-built)
+- [Step 3 — Ingest-time Parsing](#step-3--ingest-time-parsing)
+  - [Table of Contents](#table-of-contents)
+  - [Goal](#goal)
+  - [3.1 What we're building (and why)](#31-what-were-building-and-why)
+  - [3.2 Create the custom table + DCR (one click, both at once)](#32-create-the-custom-table--dcr-one-click-both-at-once)
+  - [3.3 Add the transform that reshapes the JSON](#33-add-the-transform-that-reshapes-the-json)
+  - [3.4 Grant the app registration permission on the DCR](#34-grant-the-app-registration-permission-on-the-dcr)
+  - [3.5 Capture the DCR Immutable ID + Stream name](#35-capture-the-dcr-immutable-id--stream-name)
+  - [3.6 Build the "send data" request in Bruno](#36-build-the-send-data-request-in-bruno)
+  - [3.7 Verify the data in Sentinel](#37-verify-the-data-in-sentinel)
+  - [What you built](#what-you-built)
 
 ---
 
@@ -57,21 +60,20 @@ Sentinel's portal can create the table **and** the DCR together. We'll use that.
 1. Open your **Log Analytics workspace** in the Azure portal
 2. Left nav → **Tables** → **+ Create** → **New custom log (DCR-based)**
 3. **Basics:**
-   - **Table name:** `ContosoAuthIngest`  
-     ↳ The portal will append `_CL` automatically → final name `ContosoAuthIngest_CL`
-   - **Description:** `ContosoAuth sign-in events, normalized at ingest time to ASIM Authentication shape`
-   - **Data collection rule:** **Create a new DCR**
-     - **Name:** `dcr-contosoauth-ingest`
-     - **Subscription / Resource group:** same as workspace
-   - **Data collection endpoint:** select the DCE you created in Step 2 (`dce-sentinel-parsing-ttt`)
+    - **Table name:** Use a generic and unique name, e.g., `CustomAuthIngest` (the portal will append `_CL` automatically → final name `CustomAuthIngest_CL`)
+    - **Description:** e.g., `Custom authentication sign-in events, normalized at ingest time to ASIM Authentication shape`
+    - **Data collection rule:** **Create a new DCR**
+       - **Name:** Use a generic and unique name, e.g., `dcr-auth-ingest-<yourinitials>`
+       - **Subscription / Resource group:** same as workspace
+    - **Data collection endpoint:** select the DCE you created in Step 2 (e.g., `dce-sentinel-parsing-lab-<yourinitials>`)
 4. **Next: Schema and transformation**
 5. **Upload sample data** — upload `Parsing/sample-data/auth-events.json`. The portal parses it, infers a schema, and shows you a preview.
 
 > **💡 Why the portal needs a sample:** the DCR's `streamDeclarations` block defines what *incoming* data looks like — the columns that Bruno will POST. The portal infers those columns from your sample JSON. We'll then add a `transformKql` that reshapes those incoming columns into the *destination* table's columns.
 
 You'll see the portal infer columns roughly like:
-- `timestamp` (string)
-- `event` (dynamic) ← the whole nested blob
+   - `timestamp` (string)
+   - `event` (dynamic) ← the whole nested blob
 
 Good. That's exactly what we want as input.
 
@@ -155,7 +157,7 @@ Until we do this, Bruno will get a `403 Forbidden` when posting.
 2. Left nav → **Access control (IAM)** → **+ Add** → **Add role assignment**
 3. **Role:** `Monitoring Metrics Publisher`
 4. **Assign access to:** `User, group, or service principal`
-5. **Select members:** search for your app registration name (`app-sentinel-parsing-ttt`) → select it
+5. **Select members:** search for your app registration name (`app-sentinel-parsing-lab-<yourinitials>`) → select it
 6. **Review + assign**
 
 > **💡 Why "Monitoring Metrics Publisher":** despite the name (legacy from the metrics API), this is **the** Logs Ingestion API role. Its single data action `Microsoft.Insights/Telemetry/Write` is what the ingestion endpoint checks. Anything broader (Contributor, Owner) would also work but violates least-privilege.

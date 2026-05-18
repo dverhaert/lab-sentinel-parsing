@@ -1,3 +1,4 @@
+> **Tip:** Always add a unique suffix (like your initials or a random string) to resource names (e.g., `dce-sentinel-parsing-lab-dv`) to avoid conflicts in shared environments.
 # Step 2 — Prepare the Lab
 
 [← Back: Step 1](Step1-Why-Parsing-and-ASIM.md) | [Next: Step 3 — Ingest-time Parsing →](Step3-Ingest-time-Parsing.md)
@@ -6,15 +7,18 @@
 
 ## Table of Contents
 
-- [Goal](#goal)
-- [2.1 What we're building (and why)](#21-what-were-building-and-why)
-- [2.2 Identify your Log Analytics workspace](#22-identify-your-log-analytics-workspace)
-- [2.3 Create a Data Collection Endpoint (DCE)](#23-create-a-data-collection-endpoint-dce)
-- [2.4 Create the Microsoft Entra app registration](#24-create-the-microsoft-entra-app-registration)
-- [2.5 Install Bruno and create a collection](#25-install-bruno-and-create-a-collection)
-- [2.6 Build the OAuth token request in Bruno](#26-build-the-oauth-token-request-in-bruno)
-- [2.7 Get your sample data](#27-get-your-sample-data)
-- [What you built](#what-you-built)
+- [Step 2 — Prepare the Lab](#step-2--prepare-the-lab)
+  - [Table of Contents](#table-of-contents)
+  - [Goal](#goal)
+  - [2.1 What we're building (and why)](#21-what-were-building-and-why)
+  - [2.2 Identify your Log Analytics workspace](#22-identify-your-log-analytics-workspace)
+  - [2.3 Create a Data Collection Endpoint (DCE)](#23-create-a-data-collection-endpoint-dce)
+  - [2.4 Create the Microsoft Entra app registration](#24-create-the-microsoft-entra-app-registration)
+    - [Create a client secret](#create-a-client-secret)
+  - [2.5 Install Bruno and create a collection](#25-install-bruno-and-create-a-collection)
+  - [2.6 Build the OAuth token request in Bruno](#26-build-the-oauth-token-request-in-bruno)
+  - [2.7 Get your sample data](#27-get-your-sample-data)
+  - [What you built](#what-you-built)
 
 ---
 
@@ -71,26 +75,27 @@ Make sure you have a Sentinel-enabled workspace ready, and **note these values**
 
 ---
 
+
 ## 2.3 Create a Data Collection Endpoint (DCE)
 
 1. In the Azure portal, search for **Data Collection Endpoints** → **Create**
 2. Fill in:
    - **Subscription / Resource group:** same as your workspace
-   - **Endpoint name:** `dce-sentinel-parsing-ttt`
+   - **Endpoint name:** Use a generic and unique name, e.g., `dce-sentinel-parsing-lab-<yourinitials>` (replace `<yourinitials>` with your own to avoid naming collisions in shared environments)
    - **Region:** **same as your workspace**
 3. **Review + create** → **Create**
 4. Once deployed, open the resource and copy the **Logs ingestion** URL.  
-   It looks like: `https://dce-sentinel-parsing-ttt-xxxx.westeurope-1.ingest.monitor.azure.com`
+   It looks like: `https://dce-sentinel-parsing-lab-xxxx.westeurope-1.ingest.monitor.azure.com`
 5. Paste that URL somewhere temporary — you'll need it as `dceEndpoint` in Bruno.
 
-> **💡 Why "Logs ingestion" URL specifically:** a DCE has multiple URLs (logs, metrics, configuration). Logs Ingestion API uses the *Logs ingestion* one. Picking the wrong URL gives a confusing 404.
+> 💡 Why "Logs ingestion" URL specifically: a DCE has multiple URLs (logs, metrics, configuration). Logs Ingestion API uses the *Logs ingestion* one. Picking the wrong URL gives a confusing 404.
 
 ---
 
 ## 2.4 Create the Microsoft Entra app registration
 
 1. Microsoft Entra admin center → **App registrations** → **New registration**
-2. **Name:** `app-sentinel-parsing-ttt`
+2. **Name:** Use a generic and unique name, e.g., `app-sentinel-parsing-lab-<yourinitials>`
 3. **Supported account types:** *Accounts in this organizational directory only* (single tenant)
 4. **Redirect URI:** leave blank (we'll never do an interactive login)
 5. **Register**
@@ -101,15 +106,15 @@ Make sure you have a Sentinel-enabled workspace ready, and **note these values**
 ### Create a client secret
 
 1. Left nav → **Certificates & secrets** → **+ New client secret**
-2. **Description:** `ttt-secret`, **Expires:** 90 days
+2. **Description:** `lab-secret`, **Expires:** 90 days (or your preferred duration)
 3. **Add**
 4. **Immediately copy the `Value` column** (not the Secret ID) → save as `clientSecret`
 
-> **💡 Why now and only now:** the secret value is shown exactly once. If you navigate away, you have to delete it and create a new one. Get it into your Bruno env var before you do anything else.
+> 💡 Why now and only now: the secret value is shown exactly once. If you navigate away, you have to delete it and create a new one. Get it into your Bruno env var before you do anything else.
 
-> **⚠️ Security note:** treat this secret like a password. Don't paste it into chat, screenshots, or shared docs. For the lab it's low-risk, but build the muscle memory.
+> ⚠️ Security note: treat this secret like a password. Don't paste it into chat, screenshots, or shared docs.
 
-We will assign **`Monitoring Metrics Publisher`** RBAC on the DCRs in Steps 3 and 4 — *after* the DCRs exist. Don't do it now.
+You will assign **`Monitoring Metrics Publisher`** RBAC on the DCRs in Steps 3 and 4 — *after* the DCRs exist. Don't do it now.
 
 📖 [Tutorial: Send data to Logs (portal)](https://learn.microsoft.com/en-us/azure/azure-monitor/logs/tutorial-logs-ingestion-portal)
 
@@ -117,11 +122,11 @@ We will assign **`Monitoring Metrics Publisher`** RBAC on the DCRs in Steps 3 an
 
 ## 2.5 Install Bruno and create a collection
 
-[Bruno](https://www.usebruno.com/) is a Postman-like REST client that stores everything as plain text files — perfect for a TTT.
+[Bruno](https://www.usebruno.com/) is a Postman-like REST client that stores everything as plain text files — perfect for a lab.
 
 1. Install Bruno from <https://www.usebruno.com/downloads>
 2. Open Bruno → **Create Collection**
-   - **Name:** `Sentinel Parsing TTT`
+   - **Name:** `Sentinel Parsing Lab`
    - **Location:** anywhere on your disk; just remember it
 3. With the collection open, click the **Environments** icon (gear, top-right) → **Configure**
 4. Create a new environment named `lab` and add these variables:
@@ -205,7 +210,7 @@ Open the file and skim the structure. Notice the **deeply nested** layout: `even
 - [ ] Identified your workspace, region, subscription, tenant
 - [ ] Created a **DCE** in the workspace's region
 - [ ] Created an **app registration** with a **client secret**
-- [ ] Installed **Bruno** and created a `Sentinel Parsing TTT` collection
+- [ ] Installed **Bruno** and created a `Sentinel Parsing Lab` collection
 - [ ] Configured an environment with `tenantId`, `clientId`, `clientSecret`, `dceEndpoint`
 - [ ] Built and successfully ran a `01 - Get Token` request that auto-stores `bearerToken`
 - [ ] Located `Parsing/sample-data/auth-events.json`

@@ -1,3 +1,5 @@
+> **Tip for shared environments:** When naming resources (e.g., Data Collection Endpoints, DCRs, app registrations, tables), always add a unique suffix such as your initials or a random string (e.g., `-lab-dv`). This prevents naming collisions if multiple users follow this guide in the same Azure environment.
+---
 # Step 1 — Why Parsing & ASIM
 
 [← Back to overview](README.md) | [Next: Step 2 — Prepare the Lab →](Step2-Prepare-the-Lab.md)
@@ -6,19 +8,24 @@
 
 ## Table of Contents
 
-- [Goal](#goal)
-- [1.1 The problem: every log source speaks a different language](#11-the-problem-every-log-source-speaks-a-different-language)
-- [1.2 The analogy: translators at the United Nations](#12-the-analogy-translators-at-the-united-nations)
-- [1.3 What is ASIM?](#13-what-is-asim)
-- [1.4 The two ways to parse: ingest-time vs query-time](#14-the-two-ways-to-parse-ingest-time-vs-query-time)
-- [1.5 Why one detection rule beats fifty](#15-why-one-detection-rule-beats-fifty)
-- [What you learned](#what-you-learned)
+- [Step 1 — Why Parsing \& ASIM](#step-1--why-parsing--asim)
+  - [Table of Contents](#table-of-contents)
+  - [Goal](#goal)
+  - [1.1 The problem: every log source speaks a different language](#11-the-problem-every-log-source-speaks-a-different-language)
+  - [1.2 The analogy: translators at the United Nations](#12-the-analogy-translators-at-the-united-nations)
+  - [1.3 What is ASIM?](#13-what-is-asim)
+    - [1. **Schemas** — the "English dictionary"](#1-schemas--the-english-dictionary)
+    - [2. **Parsers** — the "translators"](#2-parsers--the-translators)
+    - [3. **Unifying parsers** — the "Council clerk who reads everyone's transcript"](#3-unifying-parsers--the-council-clerk-who-reads-everyones-transcript)
+  - [1.4 The two ways to parse: ingest-time vs query-time](#14-the-two-ways-to-parse-ingest-time-vs-query-time)
+  - [1.5 Why one detection rule beats fifty](#15-why-one-detection-rule-beats-fifty)
+  - [What you learned](#what-you-learned)
 
 ---
 
 ## Goal
 
-Understand **why** Sentinel needs parsing, **what** ASIM solves, and **when** to use ingest-time versus query-time parsing — so the rest of the lab is "I know what I'm doing and why" instead of "I'm copy-pasting and hoping."
+Understand **why** Microsoft Sentinel (or any SIEM) needs parsing, **what** ASIM solves, and **when** to use ingest-time versus query-time parsing. This guide is designed for all customers and organizations, not just internal teams.
 
 **Difficulty:** Easy  
 **Duration:** ~25 minutes  
@@ -30,8 +37,8 @@ Understand **why** Sentinel needs parsing, **what** ASIM solves, and **when** to
 
 Imagine you receive sign-in logs from **five different products**. Each one tells you the same story — *who logged in, from where, did it succeed* — but each one uses different words.
 
-| Concept | Microsoft Entra ID | Okta | A custom Dutch HR app | A Linux server | Our `ContosoAuth` |
-|---------|-------------------|------|-----------------------|----------------|-------------------|
+| Concept | Microsoft Entra ID | Okta | Custom HR app | Linux server | ExampleApp |
+|---------|-------------------|------|---------------|-------------|-----------|
 | The user who logged in | `userPrincipalName` | `actor.alternateId` | `gebruikersnaam` | `user` | `event.user.upn` |
 | The source IP | `ipAddress` | `client.ipAddress` | `bron_ip` | `rhost` | `event.src.ip` |
 | Did it succeed? | `status.errorCode == 0` | `outcome.result == "SUCCESS"` | `gelukt == "ja"` | `"Accepted password"` in message | `event.outcome == "Success"` |
@@ -42,7 +49,7 @@ Without normalization, you'd have to:
 - Write five different queries (one per product)
 - Maintain them as schemas drift
 - Re-do all of this when a sixth product is onboarded
-- Hope nobody mistypes `gebruikersnaam`
+- Hope nobody mistypes a field name
 
 This is the **parsing problem**: raw logs are *informational*, not *operational*. Detections need a single, consistent vocabulary.
 
@@ -57,7 +64,7 @@ Two ways to solve this:
 **Option A — Translate at the door (ingest-time):**  
 A translator stands at the entrance. Before a delegate enters, they translate everything into English and hand the Council a clean transcript. Fast for the Council, but if the translator made a mistake, you can't go back to the original — and every translator slows the door down a bit.
 
-**Option B — Translate at the microphone (query-time):**  
+**Option B — Translate at the microphone (query-time):**
 Delegates walk in speaking their own language. A live translator translates only when someone actually speaks. The original speech is preserved on tape forever; you can replay it and re-translate later if needed. But every Council session pays the translation cost in real time.
 
 That's it. That's the whole TTT in one analogy:
@@ -86,15 +93,17 @@ In every schema, fields like `EventVendor`, `EventProduct`, `EventResult`, `SrcI
 📖 [ASIM Authentication schema reference](https://learn.microsoft.com/en-us/azure/sentinel/normalization-schema-authentication)
 
 ### 2. **Parsers** — the "translators"
+
 Per-source KQL functions that convert raw data into the schema. Naming convention:
-- `vimAuthenticationContosoAuth` — **filtering** parser (accepts time + filter parameters; faster, used in production by detection rules)
-- `ASimAuthenticationContosoAuth` — **parameter-less** parser (a 1-line wrapper on top of the filtering one; used for ad-hoc hunting in the Logs editor)
+- `vimAuthenticationCustomApp` — **filtering** parser (accepts time + filter parameters; faster, used in production by detection rules)
+- `ASimAuthenticationCustomApp` — **parameter-less** parser (a 1-line wrapper on top of the filtering one; used for ad-hoc hunting in the Logs editor)
 
 You write one **pair** per source per schema. The pair shares logic — the parameter-less one just calls the filtering one with no filters.
 
-> **💡 In this lab we build the filtering parser in the main flow** (Step 4.6) because that's what the Step 5 detection rule needs. The parameter-less wrapper is added in **Step 4.9 (Bonus)** — it takes ~5 minutes once the filtering one works.
+> **💡 In this guide you build the filtering parser in the main flow** (Step 4.6) because that's what the Step 5 detection rule needs. The parameter-less wrapper is added in **Step 4.9 (Bonus)** — it takes ~5 minutes once the filtering one works.
 
 ### 3. **Unifying parsers** — the "Council clerk who reads everyone's transcript"
+
 Built-in functions that **union all parsers for a schema** into one queryable surface.
 
 ```
@@ -102,11 +111,11 @@ _Im_Authentication          ← filtering, used by detections (built-in, ships i
 _ASim_Authentication        ← parameter-less, used for hunting
 ```
 
-> **💡 Note on naming:** Microsoft also offers a *workspace-deployed* version of these unifiers (`imAuthentication` / `ASimAuthentication`, no leading underscore) that you can install via the [aka.ms/DeployASIM](https://aka.ms/DeployASIM) ARM template. They're functionally equivalent. **In this lab we use the built-in `_Im_Authentication`** because it's already there — no extra deployment step. If you ever see a `Failed to resolve table or column expression named 'imAuthentication'` error, you've hit the difference.
+> **💡 Note on naming:** Microsoft also offers a *workspace-deployed* version of these unifiers (`imAuthentication` / `ASimAuthentication`, no leading underscore) that you can install via the [aka.ms/DeployASIM](https://aka.ms/DeployASIM) ARM template. They're functionally equivalent. **This guide uses the built-in `_Im_Authentication`** because it's already there — no extra deployment step. If you ever see a `Failed to resolve table or column expression named 'imAuthentication'` error, you've hit the difference.
 
-When you query `_Im_Authentication`, Sentinel transparently calls `vimAuthenticationAAD`, `vimAuthenticationOkta`, `vimAuthenticationContosoAuth`, etc., and returns the union — all already in ASIM shape.
+When you query `_Im_Authentication`, Sentinel transparently calls all registered parsers (e.g., `vimAuthenticationAAD`, `vimAuthenticationOkta`, `vimAuthenticationCustomApp`, etc.), and returns the union — all already in ASIM shape.
 
-> **💡 Why it works:** the unifying parser is *also* a KQL function. You can extend it (add your own custom source) by registering your parser through the **`Im_AuthenticationCustom`** custom unifying parser — which the built-in unifier automatically calls if it exists. We will create that in Step 4.
+> **💡 Why it works:** the unifying parser is *also* a KQL function. You can extend it (add your own custom source) by registering your parser through the **`Im_AuthenticationCustom`** custom unifying parser — which the built-in unifier automatically calls if it exists. You will create that in Step 4.
 
 📖 [Develop a custom ASIM parser](https://learn.microsoft.com/en-us/azure/sentinel/normalization-develop-parsers)
 

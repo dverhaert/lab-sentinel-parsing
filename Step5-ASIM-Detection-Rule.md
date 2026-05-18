@@ -1,3 +1,4 @@
+> **Tip:** When creating KQL functions or analytic rules, add a unique suffix (e.g., `vimAuthenticationCustomAuthIngest_dv` to avoid conflicts in shared workspaces.
 # Step 5 — One ASIM Detection Rule, Both Sources
 
 [← Back: Step 4](Step4-Query-time-Parsing.md) | [Next: Step 6 — Closeout →](Step6-Closeout.md)
@@ -6,14 +7,20 @@
 
 ## Table of Contents
 
-- [Goal](#goal)
-- [5.1 Wire the ingest-time table into ASIM too](#51-wire-the-ingest-time-table-into-asim-too)
-- [5.2 The rule we're going to deploy](#52-the-rule-were-going-to-deploy)
-- [5.3 Option A — Deploy the built-in template](#53-option-a--deploy-the-built-in-template)
-- [5.4 Option B — Create a simplified rule from scratch](#54-option-b--create-a-simplified-rule-from-scratch)
-- [5.5 Trigger and observe the alert](#55-trigger-and-observe-the-alert)
-- [5.6 The "aha" moment](#56-the-aha-moment)
-- [What you built](#what-you-built)
+- [Step 5 — One ASIM Detection Rule, Both Sources](#step-5--one-asim-detection-rule-both-sources)
+  - [Table of Contents](#table-of-contents)
+  - [Goal](#goal)
+  - [5.1 Wire the ingest-time table into ASIM too](#51-wire-the-ingest-time-table-into-asim-too)
+    - [Create `vimAuthenticationContosoAuthIngest`](#create-vimauthenticationcontosoauthingest)
+    - [Update `Im_AuthenticationCustom` to include both](#update-im_authenticationcustom-to-include-both)
+  - [5.2 The rule we're going to deploy](#52-the-rule-were-going-to-deploy)
+  - [5.3 Option A — Deploy the built-in template](#53-option-a--deploy-the-built-in-template)
+  - [5.4 Option B — Create a simplified rule from scratch](#54-option-b--create-a-simplified-rule-from-scratch)
+  - [5.5 Trigger and observe the alert](#55-trigger-and-observe-the-alert)
+    - [Quick option — preview the rule logic now](#quick-option--preview-the-rule-logic-now)
+    - [Real-time option — re-send the data with current timestamps](#real-time-option--re-send-the-data-with-current-timestamps)
+  - [5.6 The "aha" moment](#56-the-aha-moment)
+  - [What you built](#what-you-built)
 
 ---
 

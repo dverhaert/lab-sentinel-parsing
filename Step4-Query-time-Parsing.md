@@ -1,3 +1,4 @@
+> **Tip:** Always use a unique suffix for resource names (e.g., `dcr-auth-raw-dv`, `CustomAuthRaw_CL`) to ensure your resources do not conflict with others in the same environment.
 # Step 4 — Query-time Parsing
 
 [← Back: Step 3](Step3-Ingest-time-Parsing.md) | [Next: Step 5 — ASIM Detection Rule →](Step5-ASIM-Detection-Rule.md)
@@ -6,18 +7,38 @@
 
 ## Table of Contents
 
-- [Goal](#goal)
-- [4.1 What we're building (and why)](#41-what-were-building-and-why)
-- [4.2 Create a passthrough custom table + DCR](#42-create-a-passthrough-custom-table--dcr)
-- [4.3 Grant the app permission and capture IDs](#43-grant-the-app-permission-and-capture-ids)
-- [4.4 Send the data via Bruno](#44-send-the-data-via-bruno)
-- [4.5 Verify the raw data is there](#45-verify-the-raw-data-is-there)
-- [4.6 Build the ASIM filtering parser `vimAuthenticationContosoAuth`](#46-build-the-asim-filtering-parser-vimauthenticationcontosoauth)
-- [4.6.5 What the parameters actually *do* — buffet vs. menu](#465-what-the-parameters-actually-do--buffet-vs-menu)
-- [4.7 Test the parser](#47-test-the-parser)
-- [4.8 Register the parser with the unifying parser `_Im_Authentication`](#48-register-the-parser-with-the-unifying-parser-_im_authentication)
-- [4.9 Bonus — complete the pair with `ASimAuthenticationContosoAuth`](#49-bonus--complete-the-pair-with-asimauthenticationcontosoauth)
-- [What you built](#what-you-built)
+- [Step 4 — Query-time Parsing](#step-4--query-time-parsing)
+  - [Table of Contents](#table-of-contents)
+  - [Goal](#goal)
+  - [4.1 What we're building (and why)](#41-what-were-building-and-why)
+  - [4.2 Create a passthrough custom table + DCR](#42-create-a-passthrough-custom-table--dcr)
+  - [4.3 Grant the app permission and capture IDs](#43-grant-the-app-permission-and-capture-ids)
+  - [4.4 Send the data via Bruno](#44-send-the-data-via-bruno)
+  - [4.5 Verify the raw data is there](#45-verify-the-raw-data-is-there)
+  - [4.6 Build the ASIM filtering parser `vimAuthenticationContosoAuth`](#46-build-the-asim-filtering-parser-vimauthenticationcontosoauth)
+  - [4.6.5 What the parameters actually *do* — buffet vs. menu](#465-what-the-parameters-actually-do--buffet-vs-menu)
+    - [Two words you need to know first](#two-words-you-need-to-know-first)
+    - [The analogy: buffet vs. menu](#the-analogy-buffet-vs-menu)
+    - ["But how does the parser *know* what to filter on?" — your skeptic's question, answered](#but-how-does-the-parser-know-what-to-filter-on--your-skeptics-question-answered)
+    - [A concrete walk-through with our sample data](#a-concrete-walk-through-with-our-sample-data)
+    - [The performance payoff in one picture](#the-performance-payoff-in-one-picture)
+    - [Prove it to yourself](#prove-it-to-yourself)
+    - [Reference: the parameters in detail](#reference-the-parameters-in-detail)
+    - [The "empty means no filter" convention](#the-empty-means-no-filter-convention)
+    - [Why this is non-negotiable for the unifier](#why-this-is-non-negotiable-for-the-unifier)
+    - [How were these parameters chosen — and where do I find the list for *other* schemas?](#how-were-these-parameters-chosen--and-where-do-i-find-the-list-for-other-schemas)
+  - [4.7 Test the parser](#47-test-the-parser)
+  - [4.8 Register the parser with the unifying parser `_Im_Authentication`](#48-register-the-parser-with-the-unifying-parser-_im_authentication)
+    - [Two flavors of unifying parser — know which one you have](#two-flavors-of-unifying-parser--know-which-one-you-have)
+    - [How `Im_AuthenticationCustom` plugs in (no manual wiring needed)](#how-im_authenticationcustom-plugs-in-no-manual-wiring-needed)
+    - [Create `Im_AuthenticationCustom`](#create-im_authenticationcustom)
+    - [Verify the unifier picks us up](#verify-the-unifier-picks-us-up)
+  - [4.9 Bonus — complete the pair with `ASimAuthenticationContosoAuth`](#49-bonus--complete-the-pair-with-asimauthenticationcontosoauth)
+    - [Why two parsers, not one?](#why-two-parsers-not-one)
+    - [Create `ASimAuthenticationContosoAuth`](#create-asimauthenticationcontosoauth)
+    - [Register it with the parameter-less custom unifier `ASim_AuthenticationCustom`](#register-it-with-the-parameter-less-custom-unifier-asim_authenticationcustom)
+    - [Recap of all four functions](#recap-of-all-four-functions)
+  - [What you built](#what-you-built)
 
 ---
 
@@ -61,10 +82,10 @@ Same wizard as Step 3, with two key differences: a **different table name**, and
 
 1. Workspace → **Tables** → **+ Create** → **New custom log (DCR-based)**
 2. **Basics:**
-   - **Table name:** `ContosoAuthRaw` → final name `ContosoAuthRaw_CL`
-   - **DCR:** **Create new** → `dcr-contosoauth-raw`
-   - **DCE:** the same `dce-sentinel-parsing-ttt` from Step 2
-3. **Schema and transformation:** upload `Parsing/sample-data/auth-events.json` (same file as Step 3)
+    - **Table name:** Use a generic and unique name, e.g., `CustomAuthRaw` → final name `CustomAuthRaw_CL`
+    - **DCR:** **Create new** → e.g., `dcr-auth-raw-<yourinitials>`
+    - **DCE:** the same DCE you created in Step 2 (e.g., `dce-sentinel-parsing-lab-<yourinitials>`)
+3. **Upload sample data** — upload `Parsing/sample-data/auth-events.json`. The portal parses it, infers a schema, and shows you a preview.
 4. In the **Transformation editor**, replace whatever the portal generated with:
 
    ```kusto
@@ -89,9 +110,9 @@ Same wizard as Step 3, with two key differences: a **different table name**, and
 
 Same drill as Step 3.4 / 3.5, but for the **new** DCR.
 
-1. DCR `dcr-contosoauth-raw` → **Access control (IAM)** → assign **`Monitoring Metrics Publisher`** to `app-sentinel-parsing-ttt`
+1. DCR (e.g., `dcr-auth-raw-<yourinitials>`) → **Access control (IAM)** → assign **`Monitoring Metrics Publisher`** to your app registration (e.g., `app-sentinel-parsing-lab-<yourinitials>`)
 2. **JSON view** → copy `properties.immutableId` → save as Bruno env var `dcrImmutableIdRaw`
-3. The stream name will be `Custom-ContosoAuthRaw_CL` → save as Bruno env var `streamRaw`
+3. The stream name will be `Custom-CustomAuthRaw_CL` (or your chosen table name) → save as Bruno env var `streamRaw`
 
 ---
 
@@ -248,7 +269,7 @@ Before we test the parser, take five minutes to internalize what the parameters 
 The rest of this section uses two terms a lot. Neither is scary once you see what they mean.
 
 **`parse_json` = "open the sealed envelope."**  
-Our `ContosoAuthRaw_CL` table has a column called `RawEvent`. Each cell in that column holds one **sealed envelope** of nested JSON like:
+Your `CustomAuthRaw_CL` table has a column called `RawEvent`. Each cell in that column holds one **sealed envelope** of nested JSON like:
 
 ```json
 { "user": {"upn":"beth@contoso.nl"}, "src": {"ip":"185.220.101.42"}, "outcome":"Failure", … }
@@ -691,7 +712,7 @@ Four functions total, but only **two** contain real parsing logic (`vim*` for ra
 ## What you built
 
 - [ ] Custom table `ContosoAuthRaw_CL` storing the original nested JSON in a `RawEvent` dynamic column
-- [ ] DCR `dcr-contosoauth-raw` with a passthrough transform
+- [ ] DCR `dcr-auth-raw-<yourinitials>` with a passthrough transform
 - [ ] Bruno request `03 - Send to Raw DCR` returning **204**
 - [ ] KQL function `vimAuthenticationContosoAuth` — filtering parser, ASIM Authentication shape
 - [ ] Conceptual grasp of what the parameters do (the librarian and the request slip)

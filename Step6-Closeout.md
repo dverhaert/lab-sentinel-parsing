@@ -1,3 +1,4 @@
+> **Tip:** If you used a unique suffix for your resources, remember to use it when searching for or deleting resources during cleanup.
 # Step 6 — Closeout & Decision Matrix
 
 [← Back: Step 5](Step5-ASIM-Detection-Rule.md) | [Back to overview](README.md)
@@ -6,13 +7,19 @@
 
 ## Table of Contents
 
-- [Recap](#recap)
-- [6.1 The decision matrix — when to use which](#61-the-decision-matrix--when-to-use-which)
-- [6.2 Cost & performance notes](#62-cost--performance-notes)
-- [6.3 Common pitfalls](#63-common-pitfalls)
-- [6.4 Where to go next](#64-where-to-go-next)
-- [6.5 Cleanup](#65-cleanup)
-- [Quick reference](#quick-reference)
+- [Step 6 — Closeout \& Decision Matrix](#step-6--closeout--decision-matrix)
+  - [Table of Contents](#table-of-contents)
+  - [Recap](#recap)
+  - [6.1 The decision matrix — when to use which](#61-the-decision-matrix--when-to-use-which)
+  - [6.2 Cost \& performance notes](#62-cost--performance-notes)
+  - [6.3 Common pitfalls](#63-common-pitfalls)
+  - [6.4 Where to go next](#64-where-to-go-next)
+    - [Reference reading](#reference-reading)
+  - [6.5 Cleanup](#65-cleanup)
+  - [Quick reference](#quick-reference)
+    - [Ingest-time vs query-time in one line each](#ingest-time-vs-query-time-in-one-line-each)
+    - [The five "must" rules of ASIM normalization](#the-five-must-rules-of-asim-normalization)
+    - [The one rule that justifies the whole effort](#the-one-rule-that-justifies-the-whole-effort)
 
 ---
 
@@ -97,9 +104,9 @@ In practice, mature Sentinel deployments often run **both**: a richly normalized
 
 If this was a personal lab subscription and you're done, delete to stop billing:
 
-1. The **resource group** holding the DCE, both DCRs, and the custom tables — easiest is to put everything in a `rg-sentinel-parsing-ttt` group up front and delete the whole group.
-2. The **app registration** `app-sentinel-parsing-ttt` (Microsoft Entra → App registrations → … → Delete).
-3. The **KQL functions** `vimAuthenticationContosoAuth`, `vimAuthenticationContosoAuthIngest`, `Im_AuthenticationCustom` (workspace → Logs → Functions tab → delete).
+1. The **resource group** holding the DCE, both DCRs, and the custom tables — easiest is to put everything in a `rg-sentinel-parsing-lab-<yourinitials>` group up front and delete the whole group.
+2. The **app registration** (e.g., `app-sentinel-parsing-lab-<yourinitials>`) (Microsoft Entra → App registrations → … → Delete).
+3. The **KQL functions** you created (e.g., `vimAuthenticationContosoAuth`, `vimAuthenticationContosoAuthIngest`, `Im_AuthenticationContoso`) (workspace → Logs → Functions tab → delete).
 4. The **analytic rule** you created in Step 5.
 
 If this was a shared workspace, **leave the analytic rule disabled rather than delete it** — your colleagues may want to inspect it.
