@@ -59,7 +59,9 @@ ContosoAuthIngest_CL
 | extend
     User   = TargetUserName,
     IpAddr = SrcIpAddr,
-    Dvc    = SrcDvcHostname
+    Dvc    = SrcDvcHostname,
+    SrcDvcIpAddr   = column_ifexists("SrcDvcIpAddr", ""),
+    TargetUserType = column_ifexists("TargetUserType", "")
 ```
 
 Same parameters as `vimAuthenticationContosoAuth`, **dramatically less code** — because the table already has ASIM column names. No `RawEvent.user.upn` digging required.
@@ -137,8 +139,10 @@ Microsoft Sentinel ships a maintained brute-force template that uses ASIM normal
    - **Run frequency:** every 5 minutes (or as low as you can — for the demo we want it to fire fast)
    - **Lookup data from the last:** 1 hour
    - **Stop running query after:** 1 hour
-   - **Entity mapping:** the template maps `Account → TargetUserName` and `IP → SrcIpAddr` automatically — leave as-is
+    - **Entity mapping:** this is not always auto-populated. If it is empty, map it manually: `Account → TargetUserName` (or `TargetUsername`, depending on template version) and `IP → IpAddresses`.
 6. **Review** → **Create**
+
+> **🛠️ Troubleshooting template query resolution in this lab:** some built-in template variants reference `imAuthentication` (lowercase `i`) plus the ASIM columns `SrcDvcIpAddr` and `TargetUserType`. In a lab workspace, make it resolve by either (a) editing the template query to use `_Im_Authentication`, or (b) creating an alias function named `imAuthentication` with body `_Im_Authentication` (that's it, no parameters necessary). Also ensure both custom `vim*` parsers emit `SrcDvcIpAddr` and `TargetUserType` (see [5.1](#51-wire-the-ingest-time-table-into-asim-too) and [Step 4.6](Step4-Query-time-Parsing.md#46-build-the-asim-filtering-parser-vimauthenticationcontosoauth)).
 
 > **💡 Why use the built-in:** it's curated, threshold-tuned, has proper entity mapping, suppression logic, and gets updated by Microsoft. In production, prefer this 100% of the time.
 
@@ -228,6 +232,8 @@ Expected output: **two rows** for `beth@contoso.nl` from `185.220.101.42`, with 
 ### Real-time option — re-send the data with current timestamps
 
 If you want the **scheduled** rule to actually fire and create an incident, edit `auth-events.json` to use timestamps within the last 30 minutes (or just bulk-replace the date), re-send via Bruno requests `02` and `03`, and wait for the next 5-minute scheduled run.
+
+You can also run this as a side-by-side demo with **both** sample files (`auth-events.json` and `auth-events-channel2.json`): send each file through Bruno requests `02` and `03`, then watch `_Im_Authentication` and Incidents to see detections coming from the two different sources/payloads through the same ASIM rule.
 
 ---
 

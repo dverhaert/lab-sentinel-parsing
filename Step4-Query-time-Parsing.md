@@ -17,16 +17,7 @@
   - [4.5 Verify the raw data is there](#45-verify-the-raw-data-is-there)
   - [4.6 Build the ASIM filtering parser `vimAuthenticationContosoAuth`](#46-build-the-asim-filtering-parser-vimauthenticationcontosoauth)
   - [4.6.5 What the parameters actually *do* — buffet vs. menu](#465-what-the-parameters-actually-do--buffet-vs-menu)
-    - [Two words you need to know first](#two-words-you-need-to-know-first)
-    - [The analogy: buffet vs. menu](#the-analogy-buffet-vs-menu)
-    - ["But how does the parser *know* what to filter on?" — your skeptic's question, answered](#but-how-does-the-parser-know-what-to-filter-on--your-skeptics-question-answered)
-    - [A concrete walk-through with our sample data](#a-concrete-walk-through-with-our-sample-data)
-    - [The performance payoff in one picture](#the-performance-payoff-in-one-picture)
-    - [Prove it to yourself](#prove-it-to-yourself)
-    - [Reference: the parameters in detail](#reference-the-parameters-in-detail)
-    - [The "empty means no filter" convention](#the-empty-means-no-filter-convention)
-    - [Why this is non-negotiable for the unifier](#why-this-is-non-negotiable-for-the-unifier)
-    - [How were these parameters chosen — and where do I find the list for *other* schemas?](#how-were-these-parameters-chosen--and-where-do-i-find-the-list-for-other-schemas)
+    - [Appendix link](#appendix-link)
   - [4.7 Test the parser](#47-test-the-parser)
   - [4.8 Register the parser with the unifying parser `_Im_Authentication`](#48-register-the-parser-with-the-unifying-parser-_im_authentication)
     - [Two flavors of unifying parser — know which one you have](#two-flavors-of-unifying-parser--know-which-one-you-have)
@@ -202,7 +193,9 @@ ContosoAuthRaw_CL
     SrcGeoCountry      = tostring(RawEvent.src.geo.country),
     SrcGeoCity         = tostring(RawEvent.src.geo.city),
     SrcDvcHostname     = tostring(RawEvent.device.hostname),
-    SrcDvcOs           = tostring(RawEvent.device.os),
+    SrcDvcOs           = tostring(RawEvent.device.os), 
+    SrcDvcIpAddr       = tostring(RawEvent.device.ip),
+    TargetUserType     = tostring(RawEvent.user.type),
     TargetAppName      = tostring(RawEvent.app.name),
     TargetSessionId    = tostring(RawEvent.app.sessionId),
     // ── ASIM aliases that detection rules may use ──
@@ -212,23 +205,25 @@ ContosoAuthRaw_CL
 | project-away _upn, _srcip, _rawType, _outcome
 ```
 
+> **Note:** We also emit the recommended ASIM fields `SrcDvcIpAddr` and `TargetUserType` here because the built-in brute-force template in Step 5 references them.
+
 > **⚠️ If you try to *run* the query as-is, you'll get errors about undefined names** (`disabled`, `starttime`, …). That is **expected** — those names only exist once the editor knows they're function parameters. Skip running it; go straight to saving.
 
 3. Click **Save** (top of the query editor) → **Save as function**
 4. Fill in:
    - **Function name:** `vimAuthenticationContosoAuth`
-   - **Legacy category:** `ASIM`
+    - **Description:** `ContosoAuth ASIM Authentication filtering parser (query-time)`
    - **Parameters:** click **+ Add parameter** and add each row below. (Some portal versions show a single text field — in that case paste the comma-separated string further below.)
 
-     | Name | Type | Default value |
-     |------|------|---------------|
-     | `starttime` | `datetime` | `datetime(null)` |
-     | `endtime` | `datetime` | `datetime(null)` |
-     | `targetusername_has_any` | `dynamic` | `dynamic([])` |
-     | `srcipaddr_has_any_prefix` | `dynamic` | `dynamic([])` |
-     | `eventtype_in` | `dynamic` | `dynamic([])` |
-     | `eventresult` | `string` | `"*"` |
-     | `disabled` | `bool` | `false` |
+    | Type | Name | Default value |
+    |------|------|---------------|
+    | `datetime` | `starttime` | `datetime(null)` |
+    | `datetime` | `endtime` | `datetime(null)` |
+    | `dynamic` | `targetusername_has_any` | `dynamic([])` |
+    | `dynamic` | `srcipaddr_has_any_prefix` | `dynamic([])` |
+    | `dynamic` | `eventtype_in` | `dynamic([])` |
+    | `string` | `eventresult` | `"*"` |
+    | `bool` | `disabled` | `false` |
 
      If you see a single text box, paste this exact string:
 
@@ -262,230 +257,17 @@ Now let's unpack **why** this looks the way it does — every section is intenti
 
 ## 4.6.5 What the parameters actually *do* — buffet vs. menu
 
-Before we test the parser, take five minutes to internalize what the parameters are *for*. Once it clicks, every ASIM parser you ever read makes sense.
+As the concept can be quite complex, we have provided additional deep-dive context in the appendix to keep Step 4 focused on build steps.
 
-### Two words you need to know first
+Short version:
 
-The rest of this section uses two terms a lot. Neither is scary once you see what they mean.
+- **`ASimAuthenticationContosoAuth`** is the buffet: parse first, then filter.
+- **`vimAuthenticationContosoAuth(...)`** is the menu: filter first, then parse survivors.
+- Same logical result, usually lower query cost with `vim*` at scale.
 
-**`parse_json` = "open the sealed envelope."**  
-Your `CustomAuthRaw_CL` table has a column called `RawEvent`. Each cell in that column holds one **sealed envelope** of nested JSON like:
-
-```json
-{ "user": {"upn":"beth@contoso.nl"}, "src": {"ip":"185.220.101.42"}, "outcome":"Failure", … }
-```
-
-Anytime our parser writes `tostring(RawEvent.user.upn)`, KQL has to **open that envelope and read inside it**. That's `parse_json` — the small but real cost of cracking open a JSON blob, **per row**. With 20 rows you don't notice. With 20 million rows you very much do.
-
-What's *cheap*, by contrast, is reading **columns that are already columns** — like `TimeGenerated`. Those values sit on disk in a sorted, indexed format. KQL can skip whole blocks of them without ever opening an envelope.
-
-> **One-line rule:** filtering on `TimeGenerated` is cheap. Filtering on anything *inside* `RawEvent` requires opening envelopes — so we want to do it on as few envelopes as possible.
-
-**"Optimizer" = the smart waiter.**  
-When you submit a KQL query, Kusto doesn't run it line-by-line in the order you typed. A planner — the **optimizer** — looks at the *whole* query and rearranges the work to do the cheap, narrowing steps **first**. Same idea as a smart waiter who reads your whole order before walking into the kitchen, and groups the work to save trips.
-
-Two facts about the optimizer matter for us:
-
-1. **It can see inside saved functions.** When you call `vimAuthenticationContosoAuth(…)`, Kusto doesn't treat the function as a black box. It pastes the body into your query and optimizes the **combined** thing. (This is called "inlining" — the recipe is copied straight onto the chef's prep sheet rather than being mailed in a sealed letter.)
-2. **It can only push filters down past steps it understands.** A `where` on `TimeGenerated` can be pushed all the way down to disk. A `where` on a column that doesn't exist yet — because it gets created later by `parse_json`/`extend` — *cannot* be pushed past the step that creates it. **Order in the parser body matters enormously.**
-
-That's all the theory. Now the analogy.
-
-### The analogy: buffet vs. menu
-
-We loaded **20 events** into `ContosoAuthRaw_CL`. Imagine that's actually **20 million** in production. A detection rule runs **every 5 minutes** and looks at the **last hour** for failed sign-ins from suspicious IPs.
-
-**Without parameters → the buffet (`ASimAuthenticationContosoAuth`)**
-> The kitchen prepares *every* dish on the menu, plates each one, and lays the entire spread out on the table. *Then* you walk down the line and pick the three plates you wanted.  
-> Sentinel reads all 20M envelopes, opens each one (`parse_json`), builds the full ASIM column set, and *then* the rule's `where TimeGenerated > ago(1h) | where EventResult == "Failure"` throws 19,999,950 of them away.
-
-**With parameters → ordering off a menu (`vimAuthenticationContosoAuth`)**
-> You hand the waiter a slip: *"Failed sign-ins, last hour, source IP starts with 185.220."* The kitchen reads the slip first, walks past the irrelevant ingredients, and only cooks the three plates you actually want.  
-> Sentinel filters on `TimeGenerated` first (last hour → ~80K envelopes survive), then a cheap string check on the IP prefix (~50 envelopes survive), and *only those 50* get fully opened with `parse_json` and turned into ASIM rows.
-
-**Same 50 rows on your screen. The buffet opened 20 million envelopes. The menu opened 50.**
-
-### "But how does the parser *know* what to filter on?" — your skeptic's question, answered
-
-Fair pushback: a function looks like a black box. You'd think calling `vim*(starttime=ago(1h))` would still have to read every envelope and *then* discard the old ones. It doesn't, and here's exactly why — using the two terms we just defined.
-
-**Step 1 — the optimizer inlines the function.** When you write:
-
-```kusto
-vimAuthenticationContosoAuth(starttime=ago(1h), srcipaddr_has_any_prefix=dynamic(["185.220."]))
-```
-
-…Kusto pastes the parser body into your query. The combined query the optimizer actually plans looks (simplified) like this:
-
-```kusto
-ContosoAuthRaw_CL
-| where TimeGenerated > ago(1h)                       // ← from the starttime parameter
-| extend _srcip = tostring(RawEvent.src.ip)           // ← envelope-opening starts here
-| where _srcip startswith "185.220."                  // ← from the srcipaddr parameter
-| extend ... full ASIM normalization ...              // ← lots more envelope-opening, on survivors only
-```
-
-There is no black box anymore. The optimizer sees a flat pipeline, top to bottom.
-
-**Step 2 — the optimizer pushes the cheap filter all the way to disk.** It reads that pipeline and notices: *"the first `where` only touches `TimeGenerated`, which is an indexed column on disk. I can apply that **before** loading any envelopes at all."* Sentinel jumps straight to the relevant time-shards on disk and only loads ~80K envelopes. The other 19.92M never leave storage.
-
-**Step 3 — the parser author put the next filter in the right place.** The next `where` filters on `_srcip`, which only exists *after* one cheap envelope-peek extracted it. So the optimizer can't push that filter past the loading step — but it *can* apply it before the giant `extend ... full ASIM normalization ...` block. ~80K envelopes get a one-field peek (cheap), ~50 survive, and only those 50 get the full expensive treatment.
-
-**Step 4 — the answer to your question.** The parser doesn't have magical awareness of the data. It has three things:
-
-1. **Cheap columns to filter on early** (`TimeGenerated` directly, plus a quick one-field `_srcip` peek before doing anything else).
-2. **An author who put the filters in the right order** — narrowing steps first, expensive steps last.
-3. **An optimizer that's allowed to look inside the function** and push those narrowing steps as close to the disk as possible.
-
-If the parser author had written it the wrong way around — full envelope-opening first, `where` afterwards — the optimizer would be stuck. It can't push a filter past a step that creates the very columns the filter needs. The buffet has exactly this problem: by the time you get to filter, all the cooking is already done.
-
-> **The slogan:** *the parser doesn't know your filter; the optimizer does, and the parser body is written in an order that lets the optimizer help.*
-
-### A concrete walk-through with our sample data
-
-We have 20 events including beth's brute-force burst from `185.220.101.42`.
-
-**A hunter exploring at 2 a.m., no idea what they're looking for yet:**
-```kusto
-ASimAuthenticationContosoAuth | take 100
-```
-No slip needed. Get everything, look around. *This is what the parameter-less parser is for.*
-
-**The detection rule from Step 5, running every 5 minutes:**
-```kusto
-vimAuthenticationContosoAuth(
-    starttime = ago(1h),
-    eventresult = "Failure",
-    srcipaddr_has_any_prefix = dynamic(["185.220."]))
-| summarize FailCount = count() by TargetUserName, SrcIpAddr
-| where FailCount >= 5
-```
-The slip arrives *before* envelope-opening starts. Sentinel skips ~99.95% of the table on disk. **Same end result as the equivalent buffet query** — just dramatically less I/O and CPU.
-
-You **can** write the same detection logic with the buffet:
-```kusto
-ASimAuthenticationContosoAuth
-| where TimeGenerated > ago(1h)
-| where EventResult == "Failure"
-| where SrcIpAddr startswith "185.220."
-| summarize ...
-```
-The result is identical. But because `EventResult` and `SrcIpAddr` are columns the buffet *creates* (by opening every envelope), the optimizer can't push those `where` clauses below the parsing step. **The narrowing arrived too late.**
-
-### The performance payoff in one picture
-
-```
- BUFFET (parameter-less)                       MENU (with parameters)
- ───────────────────────                       ───────────────────────
- 20,000,000 sealed envelopes on disk           20,000,000 sealed envelopes on disk
-         │                                              │
-         ▼                                              ▼
-   open every envelope (parse_json)              filter on TimeGenerated FIRST
-   and build full ASIM columns                   (no envelopes opened yet)
-         │                                              │   → 80,000 envelopes loaded
-         ▼                                              ▼
-   20,000,000 fully-shaped rows                  open each one just enough
-   in memory                                     to read _srcip
-         │                                              │
-         ▼                                              ▼
-   apply detection filters                       where _srcip startswith "185.220."
-         │                                              │   → 50 envelopes survive
-         ▼                                              ▼
-   50 rows returned                              fully open & shape only these 50
-   Cost: huge                                          │
-                                                       ▼
-                                                 50 rows returned
-                                                 Cost: tiny
-```
-
-### Prove it to yourself
-
-In the Logs editor, run both queries against our 20 rows. Click **Query details** in the bottom-right of the results pane. Compare the **"Data scanned"** value.
-
-With 20 rows the difference is negligible — both numbers are tiny. But the *principle* is the same one that decides whether your rule completes in 2 seconds or times out at 10 minutes when the table holds 20 million rows. **The pattern is what matters; the volume just makes it visible.**
-
----
-
-### Reference: the parameters in detail
-
-You don't need to memorize this. Skim it now, and come back when you're writing your own parser or a detection rule. The parameters fall into three groups.
-
-**1. Time window** (almost always used)
-
-| Parameter | What it does |
-|-----------|--------------|
-| `starttime` | Drops rows older than this. Filters on indexed `TimeGenerated`. |
-| `endtime`   | Drops rows newer than this. Same. |
-
-**2. Identity / network filters** (the "who" and "where")
-
-Our lab parser implements two of these; the full unifier contract has more (see Step 4.8).
-
-| Parameter | What it does | Example |
-|-----------|--------------|---------|
-| `targetusername_has_any` | Keep only rows where the *target* user (the one being signed into) matches one of these names. | `dynamic(["beth@contoso.nl"])` |
-| `srcipaddr_has_any_prefix` | Keep only rows where the **source IP** starts with one of these prefixes. Prefixes, not full IPs, so `["185.220.", "203.0.113."]` covers whole ranges. | `dynamic(["185.220."])` |
-
-> **💡 Why prefixes instead of CIDR:** prefix match is a cheap string operation. CIDR match requires parsing IPs as numbers — slower at scale. ASIM picks the cheap one.
-
-> **💡 Why the 12-param unifier contract has more (`actorusername_has_any`, `srchostname_has_any`, `targetipaddr_has_any_prefix`, `dvcipaddr_has_any_prefix`, `dvchostname_has_any`):** authentication events have multiple roles for "who / where / which device":  
-> **src** = where the user is coming **from** (their laptop's public IP)  
-> **target** = the resource being signed **into** (e.g., a SharePoint front-end's IP)  
-> **dvc** = the system **reporting** the event (the auth gateway log producer)  
-> Different rules care about different roles. The unifier's contract covers them all; your `vim*` parser only has to implement the ones that exist in *your* source.
-
-**3. Outcome filters**
-
-| Parameter | What it does | Allowed values |
-|-----------|--------------|----------------|
-| `eventtype_in` | Only these kinds of authentication events. | `dynamic(["Logon"])`, `dynamic(["Logon","Logoff"])`, `dynamic(["Elevate"])` |
-| `eventresult`  | Only this outcome. Single value, not a list. | `"Success"`, `"Failure"`, `"*"` for any |
-
-### The "empty means no filter" convention
-
-| Parameter type | Empty default | What "filled in" means |
-|----------------|---------------|------------------------|
-| `dynamic` lists (`*_has_any`, `*_in`) | `dynamic([])` → no filter | Keep rows where the column matches any listed value |
-| `string` (`eventresult`) | `"*"` → no filter | Keep rows where the column equals exactly this value |
-| `datetime` (`starttime`/`endtime`) | `datetime(null)` → no filter | Bound `TimeGenerated` |
-
-That's why every filter in the parser body looks like this:
-
-```kusto
-| where (array_length(targetusername_has_any) == 0
-         or _upn has_any (targetusername_has_any))
-```
-
-Plain English: *"If the slip is blank for this filter, let the row through. Otherwise, only let it through if it matches the slip."*
-
-### Why this is non-negotiable for the unifier
-
-Microsoft's `_Im_Authentication` doesn't know what your users will ask. When a hunter writes:
-
-```kusto
-_Im_Authentication(
-    starttime=ago(1h),
-    targetusername_has_any=dynamic(["beth@contoso.nl"]),
-    eventresult="Failure")
-```
-
-…the unifier blindly forwards those **named** parameters to every registered parser, including yours. If your parser doesn't accept that exact signature, the call fails — and `union isfuzzy=true` swallows the error (the silent "no rows" trap from the Step 4.8 troubleshooting note).
-
-### How were these parameters chosen — and where do I find the list for *other* schemas?
-
-The parameter list isn't ad-hoc. **Microsoft publishes a filtering-parameter contract for every ASIM schema.** Authentication's contract is the 12 we wired up in Step 4.8; NetworkSession's is bigger (~25 — protocols, ports, byte counts); ProcessEvent's is different again. Same mechanic everywhere; the *list* is per-schema.
-
-The criterion Microsoft uses is consistent: **a column makes the parameter list when it's both (a) frequently filtered on by detection rules in that domain, and (b) cheap enough to evaluate before the expensive normalization step.** For Authentication that gave us "time + who + where-from + what kind + outcome" — the filter vocabulary almost every auth detection inherits, whether it's brute force, impossible travel, MFA fatigue, password spray, account lockout, or first-time admin elevation. Filters outside that list (geo country, app name, OS, session ID) still work — they just run as post-filters on already-narrowed rows, which is "good but not best" on the performance hierarchy from earlier in this section.
-
-**Reference pages** — bookmark these for when you build your next parser:
-
-- 📖 [ASIM schemas — master index](https://learn.microsoft.com/azure/sentinel/normalization-about-schemas) — the table of every schema and its current version. Start here.
-- 📖 [Authentication schema (this lab)](https://learn.microsoft.com/azure/sentinel/normalization-schema-authentication) — the 12-param contract you wired up in 4.8.
-- 📖 Other common schemas, each with its own filtering-parameter contract: [Network Session](https://learn.microsoft.com/azure/sentinel/normalization-schema-network) · [Process Event](https://learn.microsoft.com/azure/sentinel/normalization-schema-process-event) · [File Event](https://learn.microsoft.com/azure/sentinel/normalization-schema-file-event) · [DNS](https://learn.microsoft.com/azure/sentinel/normalization-schema-dns) · [Web Session](https://learn.microsoft.com/azure/sentinel/normalization-schema-web) · [Registry Event](https://learn.microsoft.com/azure/sentinel/normalization-schema-registry-event) · [User Management](https://learn.microsoft.com/azure/sentinel/normalization-schema-user-management) · [DHCP](https://learn.microsoft.com/azure/sentinel/normalization-schema-dhcp)
-- 📖 [Develop a custom ASIM parser](https://learn.microsoft.com/azure/sentinel/normalization-develop-parsers) — Microsoft's official how-to. The body conventions you saw in 4.6 come from this page.
-- 📖 [Manage parsers](https://learn.microsoft.com/azure/sentinel/normalization-manage-parsers) — the unifier-contract details (the source of the 12-param signature in 4.8) and the `ASimDisabledParsers` watchlist pattern.
-
-> **⚠️ Schemas evolve.** Authentication is at version `0.1.4` today; future versions can add or rename parameters. The pattern is durable; the exact list is not. The schema page is always the source of truth for the current contract.
+### Appendix link
+If you are interested in learning more before continuing, please check out the appendix:
+- [Appendix — Step 4 Query-time Parser Context](Appendix-Step4-Query-time-Parser-Context.md)
 
 ---
 
@@ -572,20 +354,20 @@ When you query `_Im_Authentication`, Sentinel runs every built-in source-specifi
    - **Function name:** `Im_AuthenticationCustom` (case-sensitive — the built-in unifier looks for this exact name)
    - **Parameters** — add these **12 parameters in this exact order** using **+ Add parameter** for each row (do **not** use the single text-box variant — it silently mangles types):
 
-     | # | Name | Type | Default value |
-     |---|------|------|---------------|
-     | 1 | `starttime` | `datetime` | `datetime(null)` |
-     | 2 | `endtime` | `datetime` | `datetime(null)` |
-     | 3 | `targetusername_has_any` | `dynamic` | `dynamic([])` |
-     | 4 | `actorusername_has_any` | `dynamic` | `dynamic([])` |
-     | 5 | `srcipaddr_has_any_prefix` | `dynamic` | `dynamic([])` |
-     | 6 | `srchostname_has_any` | `dynamic` | `dynamic([])` |
-     | 7 | `targetipaddr_has_any_prefix` | `dynamic` | `dynamic([])` |
-     | 8 | `dvcipaddr_has_any_prefix` | `dynamic` | `dynamic([])` |
-     | 9 | `dvchostname_has_any` | `dynamic` | `dynamic([])` |
-     | 10 | `eventtype_in` | `dynamic` | `dynamic([])` |
-     | 11 | `eventresultdetails_in` | `dynamic` | `dynamic([])` |
-     | 12 | `eventresult` | `string` | `"*"` |
+    | # | Type | Name | Default value |
+    |---|------|------|---------------|
+    | 1 | `datetime` | `starttime` | `datetime(null)` |
+    | 2 | `datetime` | `endtime` | `datetime(null)` |
+    | 3 | `dynamic` | `targetusername_has_any` | `dynamic([])` |
+    | 4 | `dynamic` | `actorusername_has_any` | `dynamic([])` |
+    | 5 | `dynamic` | `srcipaddr_has_any_prefix` | `dynamic([])` |
+    | 6 | `dynamic` | `srchostname_has_any` | `dynamic([])` |
+    | 7 | `dynamic` | `targetipaddr_has_any_prefix` | `dynamic([])` |
+    | 8 | `dynamic` | `dvcipaddr_has_any_prefix` | `dynamic([])` |
+    | 9 | `dynamic` | `dvchostname_has_any` | `dynamic([])` |
+    | 10 | `dynamic` | `eventtype_in` | `dynamic([])` |
+    | 11 | `dynamic` | `eventresultdetails_in` | `dynamic([])` |
+    | 12 | `string` | `eventresult` | `"*"` |
 
 > **💡 Why 12 parameters here vs. 7 on `vimAuthenticationContosoAuth`:** the *inner* `vim*` parser is your private contract — it can have any reasonable subset of parameters. But the *unifying* `Im_AuthenticationCustom` has a **fixed contract with Microsoft's built-in unifier**, defined in [the manage-parsers doc](https://learn.microsoft.com/en-us/azure/sentinel/normalization-manage-parsers#add-a-custom-parser-to-a-built-in-unifying-parser). Don't deviate.
 
@@ -641,7 +423,8 @@ They share **identical body logic**. The parameter-less one is essentially a 1-l
 
 2. **Save** → **Save as function**:
    - **Function name:** `ASimAuthenticationContosoAuth`
-   - **Legacy category:** `ASIM`
+   - **Legacy category** (if working from the Azure portal): `ASIM`
+    - **Description:**  (if working from the Defender portal) `ContosoAuth ASIM Authentication parser wrapper (no parameters)`
    - **Parameters:** **none.** Leave the parameters list empty. That's the point.
 3. **Save**.
 
@@ -719,6 +502,8 @@ Four functions total, but only **two** contain real parsing logic (`vim*` for ra
 - [ ] `Im_AuthenticationCustom` registered with our parser via `union isfuzzy=true`
 - [ ] `_Im_Authentication | where EventVendor == "ContosoAuth"` returns rows
 - [ ] *(Bonus, optional)* `ASimAuthenticationContosoAuth` wrapper + `ASim_AuthenticationCustom` unifier; `_ASim_Authentication | where EventVendor == "ContosoAuth"` returns rows
+
+> **Need the deeper explanation again?** See [Appendix — Step 4 Query-time Parser Context](Appendix-Step4-Query-time-Parser-Context.md).
 
 ✅ **Pipeline 2 of 2 complete.** The same 20 events now exist in two tables, parsed two different ways, and **both** are reachable through `_Im_Authentication`. Step 5 will write one rule that fires on both.
 

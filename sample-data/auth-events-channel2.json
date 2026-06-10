@@ -1,0 +1,322 @@
+[
+  {
+    "timestamp": "2026-06-10T15:36:10Z",
+    "event": {
+      "id": "7b1d2aa1-5e8f-4a39-9e87-2b5d9c002001",
+      "vendor": "ContosoAuth",
+      "product": "AuthGateway",
+      "version": "1.4",
+      "type": "signin",
+      "outcome": "Success",
+      "reason": "",
+      "user": { "id": "u1", "name": "Noor van Dijk", "upn": "noor@contoso.nl", "tenantId": "contoso.nl" },
+      "src": { "ip": "52.174.88.10", "port": 50111, "asn": 8075, "geo": { "country": "NL", "city": "Eindhoven" } },
+      "device": { "hostname": "LAPTOP-NOOR", "os": "Windows", "osVersion": "11.0.26100" },
+      "app": { "name": "SharePoint", "sessionId": "sp-c201" }
+    }
+  },
+  {
+    "timestamp": "2026-06-10T15:41:12Z",
+    "event": {
+      "id": "7b1d2aa1-5e8f-4a39-9e87-2b5d9c002002",
+      "vendor": "ContosoAuth",
+      "product": "AuthGateway",
+      "version": "1.4",
+      "type": "signin",
+      "outcome": "Failure",
+      "reason": "Incorrect password",
+      "user": { "id": "f6", "name": "Farah El Amrani", "upn": "farah@contoso.nl", "tenantId": "contoso.nl" },
+      "src": { "ip": "198.51.100.88", "port": 60211, "asn": 9009, "geo": { "country": "MA", "city": "Casablanca" } },
+      "device": { "hostname": "unknown", "os": "Linux", "osVersion": "" },
+      "app": { "name": "Outlook", "sessionId": "ol-c202" }
+    }
+  },
+  {
+    "timestamp": "2026-06-10T15:41:34Z",
+    "event": {
+      "id": "7b1d2aa1-5e8f-4a39-9e87-2b5d9c002003",
+      "vendor": "ContosoAuth",
+      "product": "AuthGateway",
+      "version": "1.4",
+      "type": "signin",
+      "outcome": "Failure",
+      "reason": "Incorrect password",
+      "user": { "id": "f6", "name": "Farah El Amrani", "upn": "farah@contoso.nl", "tenantId": "contoso.nl" },
+      "src": { "ip": "198.51.100.88", "port": 60212, "asn": 9009, "geo": { "country": "MA", "city": "Casablanca" } },
+      "device": { "hostname": "unknown", "os": "Linux", "osVersion": "" },
+      "app": { "name": "Outlook", "sessionId": "ol-c203" }
+    }
+  },
+  {
+    "timestamp": "2026-06-10T15:41:56Z",
+    "event": {
+      "id": "7b1d2aa1-5e8f-4a39-9e87-2b5d9c002004",
+      "vendor": "ContosoAuth",
+      "product": "AuthGateway",
+      "version": "1.4",
+      "type": "signin",
+      "outcome": "Failure",
+      "reason": "Incorrect password",
+      "user": { "id": "f6", "name": "Farah El Amrani", "upn": "farah@contoso.nl", "tenantId": "contoso.nl" },
+      "src": { "ip": "198.51.100.88", "port": 60213, "asn": 9009, "geo": { "country": "MA", "city": "Casablanca" } },
+      "device": { "hostname": "unknown", "os": "Linux", "osVersion": "" },
+      "app": { "name": "Outlook", "sessionId": "ol-c204" }
+    }
+  },
+  {
+    "timestamp": "2026-06-10T15:42:18Z",
+    "event": {
+      "id": "7b1d2aa1-5e8f-4a39-9e87-2b5d9c002005",
+      "vendor": "ContosoAuth",
+      "product": "AuthGateway",
+      "version": "1.4",
+      "type": "signin",
+      "outcome": "Failure",
+      "reason": "Incorrect password",
+      "user": { "id": "f6", "name": "Farah El Amrani", "upn": "farah@contoso.nl", "tenantId": "contoso.nl" },
+      "src": { "ip": "198.51.100.88", "port": 60214, "asn": 9009, "geo": { "country": "MA", "city": "Casablanca" } },
+      "device": { "hostname": "unknown", "os": "Linux", "osVersion": "" },
+      "app": { "name": "Outlook", "sessionId": "ol-c205" }
+    }
+  },
+  {
+    "timestamp": "2026-06-10T15:42:40Z",
+    "event": {
+      "id": "7b1d2aa1-5e8f-4a39-9e87-2b5d9c002006",
+      "vendor": "ContosoAuth",
+      "product": "AuthGateway",
+      "version": "1.4",
+      "type": "signin",
+      "outcome": "Failure",
+      "reason": "Incorrect password",
+      "user": { "id": "f6", "name": "Farah El Amrani", "upn": "farah@contoso.nl", "tenantId": "contoso.nl" },
+      "src": { "ip": "198.51.100.88", "port": 60215, "asn": 9009, "geo": { "country": "MA", "city": "Casablanca" } },
+      "device": { "hostname": "unknown", "os": "Linux", "osVersion": "" },
+      "app": { "name": "Outlook", "sessionId": "ol-c206" }
+    }
+  },
+  {
+    "timestamp": "2026-06-10T15:43:02Z",
+    "event": {
+      "id": "7b1d2aa1-5e8f-4a39-9e87-2b5d9c002007",
+      "vendor": "ContosoAuth",
+      "product": "AuthGateway",
+      "version": "1.4",
+      "type": "signin",
+      "outcome": "Failure",
+      "reason": "Incorrect password",
+      "user": { "id": "f6", "name": "Farah El Amrani", "upn": "farah@contoso.nl", "tenantId": "contoso.nl" },
+      "src": { "ip": "198.51.100.88", "port": 60216, "asn": 9009, "geo": { "country": "MA", "city": "Casablanca" } },
+      "device": { "hostname": "unknown", "os": "Linux", "osVersion": "" },
+      "app": { "name": "Outlook", "sessionId": "ol-c207" }
+    }
+  },
+  {
+    "timestamp": "2026-06-10T15:43:24Z",
+    "event": {
+      "id": "7b1d2aa1-5e8f-4a39-9e87-2b5d9c002008",
+      "vendor": "ContosoAuth",
+      "product": "AuthGateway",
+      "version": "1.4",
+      "type": "signin",
+      "outcome": "Failure",
+      "reason": "User locked",
+      "user": { "id": "f6", "name": "Farah El Amrani", "upn": "farah@contoso.nl", "tenantId": "contoso.nl" },
+      "src": { "ip": "198.51.100.88", "port": 60217, "asn": 9009, "geo": { "country": "MA", "city": "Casablanca" } },
+      "device": { "hostname": "unknown", "os": "Linux", "osVersion": "" },
+      "app": { "name": "Outlook", "sessionId": "ol-c208" }
+    }
+  },
+  {
+    "timestamp": "2026-06-10T15:44:10Z",
+    "event": {
+      "id": "7b1d2aa1-5e8f-4a39-9e87-2b5d9c002009",
+      "vendor": "ContosoAuth",
+      "product": "AuthGateway",
+      "version": "1.4",
+      "type": "signin",
+      "outcome": "Success",
+      "reason": "",
+      "user": { "id": "g7", "name": "Giulia Rossi", "upn": "giulia@contoso.nl", "tenantId": "contoso.nl" },
+      "src": { "ip": "20.67.11.93", "port": 42201, "asn": 3269, "geo": { "country": "IT", "city": "Milan" } },
+      "device": { "hostname": "SURFACE-GIULIA", "os": "Windows", "osVersion": "11.0.26100" },
+      "app": { "name": "Teams", "sessionId": "tm-c209" }
+    }
+  },
+  {
+    "timestamp": "2026-06-10T15:45:32Z",
+    "event": {
+      "id": "7b1d2aa1-5e8f-4a39-9e87-2b5d9c002010",
+      "vendor": "ContosoAuth",
+      "product": "AuthGateway",
+      "version": "1.4",
+      "type": "signin",
+      "outcome": "Failure",
+      "reason": "No such user",
+      "user": { "id": "", "name": "", "upn": "finance-admin@contoso.nl", "tenantId": "contoso.nl" },
+      "src": { "ip": "203.0.113.190", "port": 35512, "asn": 64501, "geo": { "country": "US", "city": "Ashburn" } },
+      "device": { "hostname": "unknown", "os": "unknown", "osVersion": "" },
+      "app": { "name": "Outlook", "sessionId": "ol-c210" }
+    }
+  },
+  {
+    "timestamp": "2026-06-10T15:46:04Z",
+    "event": {
+      "id": "7b1d2aa1-5e8f-4a39-9e87-2b5d9c002011",
+      "vendor": "ContosoAuth",
+      "product": "AuthGateway",
+      "version": "1.4",
+      "type": "signin",
+      "outcome": "Success",
+      "reason": "",
+      "user": { "id": "h8", "name": "Hugo Martins", "upn": "hugo@contoso.nl", "tenantId": "contoso.nl" },
+      "src": { "ip": "52.174.88.14", "port": 50731, "asn": 8075, "geo": { "country": "PT", "city": "Porto" } },
+      "device": { "hostname": "DESKTOP-HUGO", "os": "Windows", "osVersion": "11.0.26100" },
+      "app": { "name": "SharePoint", "sessionId": "sp-c211" }
+    }
+  },
+  {
+    "timestamp": "2026-06-10T15:47:10Z",
+    "event": {
+      "id": "7b1d2aa1-5e8f-4a39-9e87-2b5d9c002012",
+      "vendor": "ContosoAuth",
+      "product": "AuthGateway",
+      "version": "1.4",
+      "type": "signout",
+      "outcome": "Success",
+      "reason": "",
+      "user": { "id": "u1", "name": "Noor van Dijk", "upn": "noor@contoso.nl", "tenantId": "contoso.nl" },
+      "src": { "ip": "52.174.88.10", "port": 50111, "asn": 8075, "geo": { "country": "NL", "city": "Eindhoven" } },
+      "device": { "hostname": "LAPTOP-NOOR", "os": "Windows", "osVersion": "11.0.26100" },
+      "app": { "name": "SharePoint", "sessionId": "sp-c201" }
+    }
+  },
+  {
+    "timestamp": "2026-06-10T15:48:22Z",
+    "event": {
+      "id": "7b1d2aa1-5e8f-4a39-9e87-2b5d9c002013",
+      "vendor": "ContosoAuth",
+      "product": "AuthGateway",
+      "version": "1.4",
+      "type": "signin",
+      "outcome": "Failure",
+      "reason": "MFA required",
+      "user": { "id": "g7", "name": "Giulia Rossi", "upn": "giulia@contoso.nl", "tenantId": "contoso.nl" },
+      "src": { "ip": "20.67.11.93", "port": 42202, "asn": 3269, "geo": { "country": "IT", "city": "Milan" } },
+      "device": { "hostname": "SURFACE-GIULIA", "os": "Windows", "osVersion": "11.0.26100" },
+      "app": { "name": "Teams", "sessionId": "tm-c213" }
+    }
+  },
+  {
+    "timestamp": "2026-06-10T15:48:49Z",
+    "event": {
+      "id": "7b1d2aa1-5e8f-4a39-9e87-2b5d9c002014",
+      "vendor": "ContosoAuth",
+      "product": "AuthGateway",
+      "version": "1.4",
+      "type": "signin",
+      "outcome": "Success",
+      "reason": "",
+      "user": { "id": "g7", "name": "Giulia Rossi", "upn": "giulia@contoso.nl", "tenantId": "contoso.nl" },
+      "src": { "ip": "20.67.11.93", "port": 42203, "asn": 3269, "geo": { "country": "IT", "city": "Milan" } },
+      "device": { "hostname": "SURFACE-GIULIA", "os": "Windows", "osVersion": "11.0.26100" },
+      "app": { "name": "Teams", "sessionId": "tm-c214" }
+    }
+  },
+  {
+    "timestamp": "2026-06-10T15:50:15Z",
+    "event": {
+      "id": "7b1d2aa1-5e8f-4a39-9e87-2b5d9c002015",
+      "vendor": "ContosoAuth",
+      "product": "AuthGateway",
+      "version": "1.4",
+      "type": "signin",
+      "outcome": "Success",
+      "reason": "",
+      "user": { "id": "i9", "name": "Iris Lund", "upn": "iris@contoso.nl", "tenantId": "contoso.nl" },
+      "src": { "ip": "40.90.22.44", "port": 43214, "asn": 8075, "geo": { "country": "SE", "city": "Stockholm" } },
+      "device": { "hostname": "LAPTOP-IRIS", "os": "Windows", "osVersion": "11.0.26100" },
+      "app": { "name": "OneDrive", "sessionId": "od-c215" }
+    }
+  },
+  {
+    "timestamp": "2026-06-10T15:52:01Z",
+    "event": {
+      "id": "7b1d2aa1-5e8f-4a39-9e87-2b5d9c002016",
+      "vendor": "ContosoAuth",
+      "product": "AuthGateway",
+      "version": "1.4",
+      "type": "password_change",
+      "outcome": "Success",
+      "reason": "",
+      "user": { "id": "h8", "name": "Hugo Martins", "upn": "hugo@contoso.nl", "tenantId": "contoso.nl" },
+      "src": { "ip": "52.174.88.14", "port": 50732, "asn": 8075, "geo": { "country": "PT", "city": "Porto" } },
+      "device": { "hostname": "DESKTOP-HUGO", "os": "Windows", "osVersion": "11.0.26100" },
+      "app": { "name": "AccountPortal", "sessionId": "ap-c216" }
+    }
+  },
+  {
+    "timestamp": "2026-06-10T15:54:18Z",
+    "event": {
+      "id": "7b1d2aa1-5e8f-4a39-9e87-2b5d9c002017",
+      "vendor": "ContosoAuth",
+      "product": "AuthGateway",
+      "version": "1.4",
+      "type": "signin",
+      "outcome": "Failure",
+      "reason": "Incorrect password",
+      "user": { "id": "u1", "name": "Noor van Dijk", "upn": "noor@contoso.nl", "tenantId": "contoso.nl" },
+      "src": { "ip": "52.174.88.10", "port": 50120, "asn": 8075, "geo": { "country": "NL", "city": "Eindhoven" } },
+      "device": { "hostname": "LAPTOP-NOOR", "os": "Windows", "osVersion": "11.0.26100" },
+      "app": { "name": "SharePoint", "sessionId": "sp-c217" }
+    }
+  },
+  {
+    "timestamp": "2026-06-10T15:54:40Z",
+    "event": {
+      "id": "7b1d2aa1-5e8f-4a39-9e87-2b5d9c002018",
+      "vendor": "ContosoAuth",
+      "product": "AuthGateway",
+      "version": "1.4",
+      "type": "signin",
+      "outcome": "Success",
+      "reason": "",
+      "user": { "id": "u1", "name": "Noor van Dijk", "upn": "noor@contoso.nl", "tenantId": "contoso.nl" },
+      "src": { "ip": "52.174.88.10", "port": 50121, "asn": 8075, "geo": { "country": "NL", "city": "Eindhoven" } },
+      "device": { "hostname": "LAPTOP-NOOR", "os": "Windows", "osVersion": "11.0.26100" },
+      "app": { "name": "SharePoint", "sessionId": "sp-c218" }
+    }
+  },
+  {
+    "timestamp": "2026-06-10T15:56:05Z",
+    "event": {
+      "id": "7b1d2aa1-5e8f-4a39-9e87-2b5d9c002019",
+      "vendor": "ContosoAuth",
+      "product": "AuthGateway",
+      "version": "1.4",
+      "type": "signin",
+      "outcome": "Success",
+      "reason": "",
+      "user": { "id": "j10", "name": "Jamal Hassan", "upn": "jamal@contoso.nl", "tenantId": "contoso.nl" },
+      "src": { "ip": "40.90.22.66", "port": 43822, "asn": 8075, "geo": { "country": "AE", "city": "Dubai" } },
+      "device": { "hostname": "LAPTOP-JAMAL", "os": "Windows", "osVersion": "11.0.26100" },
+      "app": { "name": "SharePoint", "sessionId": "sp-c219" }
+    }
+  },
+  {
+    "timestamp": "2026-06-10T15:56:28Z",
+    "event": {
+      "id": "7b1d2aa1-5e8f-4a39-9e87-2b5d9c002020",
+      "vendor": "ContosoAuth",
+      "product": "AuthGateway",
+      "version": "1.4",
+      "type": "signin",
+      "outcome": "Success",
+      "reason": "",
+      "user": { "id": "k11", "name": "Klara Novak", "upn": "klara@contoso.nl", "tenantId": "contoso.nl" },
+      "src": { "ip": "40.90.22.77", "port": 44871, "asn": 8075, "geo": { "country": "CZ", "city": "Prague" } },
+      "device": { "hostname": "LAPTOP-KLARA", "os": "Windows", "osVersion": "11.0.26100" },
+      "app": { "name": "OneDrive", "sessionId": "od-c220" }
+    }
+  }
+]
