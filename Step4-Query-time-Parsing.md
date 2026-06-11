@@ -285,6 +285,12 @@ vimAuthenticationContosoAuth(eventresult="Failure")
 
 You should see the **same brute-force burst** you found in Step 3.7 — `beth@contoso.nl` from `185.220.101.42` with 9 failures. **Same data, same answer, completely different storage strategy.** That's the whole point.
 
+This is what a successful `vimAuthenticationContosoAuth` run looks like in Advanced Hunting:
+
+![vimAuthenticationContosoAuth results](images/vimAuthenticationContosoAuth.png)
+
+*Figure 4.1 - Query-time filtering parser (`vimAuthenticationContosoAuth`) returning ASIM-shaped Authentication rows from raw data.*
+
 Try a few more calls to feel the parameters:
 
 ```kusto
@@ -379,6 +385,12 @@ When you query `_Im_Authentication`, Sentinel runs every built-in source-specifi
 
 > **💡 Why the `ASimDisabledParsers` watchlist plumbing:** Microsoft's pattern for emergency disabling individual parsers without editing functions. If a parser is misbehaving in prod (e.g., performance regression), an SOC engineer adds an entry to the `ASimDisabledParsers` watchlist with `SearchKey = ExcludevimAuthenticationContosoAuth`, and the next query run skips it. We're wiring up the same hook so we behave like the production pattern.
 > **For this lab the watchlist is empty** — the `_GetWatchlist` call returns no rows, the `in (DisabledParsers)` check is false, and the parser runs normally. You don't need to create the watchlist for the lab to work; the `column_ifexists` guard handles its absence gracefully.
+
+As a quick sanity check before the built-in unifier test, you can run `Im_AuthenticationCustom` directly and confirm rows come back:
+
+![Im_AuthenticationCustom results](images/Im_AuthenticationCustom.png)
+
+*Figure 4.2 - `Im_AuthenticationCustom` returning combined normalized output through the custom unifier path.*
 
 ### Verify the unifier picks us up
 

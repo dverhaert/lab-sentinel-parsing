@@ -117,6 +117,12 @@ When you query `_Im_Authentication`, Sentinel transparently calls all registered
 
 > **💡 Why it works:** the unifying parser is *also* a KQL function. You can extend it (add your own custom source) by registering your parser through the **`Im_AuthenticationCustom`** custom unifying parser — which the built-in unifier automatically calls if it exists. You will create that in Step 4.
 
+At this point, the full ASIM mental model is in place. Use this visual as a quick reference before moving to ingest-time vs query-time design choices:
+
+![ASIM components and schema usage](images/ASIM_schemas.png)
+
+*Figure 1.1 - ASIM schema principles: query the unifier, use normalized field names, and use normalized values.*
+
 📖 [Develop a custom ASIM parser](https://learn.microsoft.com/en-us/azure/sentinel/normalization-develop-parsers)
 
 ---
@@ -133,6 +139,16 @@ When you query `_Im_Authentication`, Sentinel transparently calls all registered
 | **Reversibility** | If the transform was wrong, the raw data is **lost** | Original data is intact; fix the parser, rerun |
 | **Who can change it** | DCR change → redeploy → only future events affected | Edit the function → all past data is "re-parsed" instantly |
 | **Best when** | Schema is stable, volume is high, queries are frequent | Schema is fluid, you might need raw fields later, exploration phase |
+
+These two visuals summarize the operational difference between the two parsing models:
+
+![Ingestion-time parsing explained](images/ingesttimeparsingexplained.png)
+
+*Figure 1.2 - Ingest-time parsing: normalization happens before storage, so the normalized table already exists when queried.*
+
+![Query-time parsing explained](images/querytimeparsingexplained.png)
+
+*Figure 1.3 - Query-time parsing: raw source tables are normalized at query execution into a unified presentation schema.*
 
 > **💡 Why we will do both today:** so you can feel the difference. The ingest-time table will be lean and pre-shaped. The query-time table will be raw and "messy", and you will see your parser function clean it up live.
 

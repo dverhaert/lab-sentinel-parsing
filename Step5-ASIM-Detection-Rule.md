@@ -46,6 +46,12 @@ We'll add a **trivial wrapper parser** so that table also flows through the unif
 
 In the **Logs** editor, paste the body below and **Save as function** with name `vimAuthenticationContosoAuthIngest`. Add the **same seven parameters** in the Save dialog as you did for `vimAuthenticationContosoAuth` in Step 4.6 (single-field variant string is identical — copy from Step 4.6 if needed).
 
+Before moving on, run the function once so you can confirm the ingest-time parser returns normalized Authentication rows:
+
+![vimAuthenticationContosoAuthIngest results](images/vimAuthenticationContosoAuthIngest.png)
+
+*Figure 5.1 - Ingest-time wrapper parser (`vimAuthenticationContosoAuthIngest`) output, showing ASIM fields from the already-normalized ingest table.*
+
 ```kusto
 ContosoAuthIngest_CL
 | where not(disabled)
@@ -141,6 +147,12 @@ You have two ways to ship this rule. Pick one.
 | **IP** | `Address` | **`SrcIpAddr`** (not `IpAddr`, not `IPAddress`) |
 
 > **💡 Why this matters:** Sentinel's entity engine looks for *exact* column names. If you map to `User` instead of `TargetUsername`, the incident will have no account entity because `User` is just an alias — the actual data lives in `TargetUsername`. Same with IPs. **Always use the canonical ASIM column names.**
+
+Use the wizard view below as the visual reference for the expected mapping values:
+
+![Analytics rule entity mapping](images/analyticsrule.png)
+
+*Figure 5.2 - Analytics Rule Wizard entity mapping: Account `Name -> TargetUsername` and IP `Address -> IpAddresses`.*
 
 ---
 

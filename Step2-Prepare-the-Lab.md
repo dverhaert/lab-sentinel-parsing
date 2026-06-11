@@ -141,6 +141,14 @@ You will assign **`Monitoring Metrics Publisher`** RBAC on the DCRs in Steps 3 a
 | `dcrImmutableIdRaw` | (leave blank — Step 4 fills it) | no |
 | `bearerToken` | (leave blank — set automatically by token request) | yes |
 
+Your Bruno environment should look similar to this once the variables are added:
+
+ *Note that here, `tenantId` was added to the 'global' variables so not visible in this list of environment variables). Also, `streamRaw` will come later in the lab.*
+
+![Bruno environment variables](images/bruno_variables_blurred.png)
+
+*Figure 2.1 - Bruno `lab` environment with required variables (`tenantId`, `clientId`, `clientSecret`, `dceEndpoint`, and placeholders for DCR IDs/token).* 
+
 5. **Save** the environment, then **select** it (top-right dropdown).
 
 > **💡 Why an environment file:** you never want secrets baked into request files. Bruno's environments live outside the request files, so you can commit your collection to git without leaking secrets.
@@ -173,6 +181,12 @@ Sentinel's ingestion endpoint expects a **Bearer token**. We get one from Micros
    const data = res.getBody();
    bru.setEnvVar("bearerToken", data.access_token);
    ```
+
+   Before you send, your request should look similar to this (token endpoint selected, and test script storing `bearerToken`):
+
+   ![Bruno request 01 get token](images/bruno_01gettoken.png)
+
+   *Figure 2.2 - Bruno `01 - Get Token` request with post-response script that saves `bearerToken` into the environment.*
 
 5. **Save**, then **Send**.
 6. You should get a `200 OK` with an `access_token` field in the response. Bruno just stored it as `bearerToken`.

@@ -209,6 +209,12 @@ Update your Bruno `lab` environment:
 3. **Body** → **JSON** → paste the **entire content** of `Parsing/sample-data/auth-events.json`.  
    The body is a JSON array. The Logs Ingestion API expects an array of records — exactly the shape our file already has.
 
+   Your Bruno request should look similar to this (request `02 - Send to Ingest DCR`, ingest URL, sample JSON body loaded):
+
+   ![Bruno request 02 ingest via DCR](images/bruno_02ingestdcr.png)
+
+   *Figure 3.1 - Bruno `02 - Send to Ingest DCR` request pointing to the ingest DCR stream with the full sample payload in the body.*
+
 4. **Save** → **Send**.
 5. Expected response: **`204 No Content`**. (Yes, *no body* is the success signal.)
 
