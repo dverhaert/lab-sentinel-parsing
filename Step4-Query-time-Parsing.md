@@ -185,7 +185,7 @@ ContosoAuthRaw_CL
     EventOriginalUid   = tostring(RawEvent.id),
     EventOriginalType  = _rawType,
     EventResultDetails = tostring(RawEvent.reason),
-    TargetUserName     = _upn,
+    TargetUsername     = _upn,
     TargetUsernameType = "UPN",
     TargetUserId       = tostring(RawEvent.user.id),
     SrcIpAddr          = _srcip,
@@ -199,13 +199,15 @@ ContosoAuthRaw_CL
     TargetAppName      = tostring(RawEvent.app.name),
     TargetSessionId    = tostring(RawEvent.app.sessionId),
     // ── ASIM aliases that detection rules may use ──
-    User               = _upn,
+    User               = TargetUsername,
     IpAddr             = _srcip,
     Dvc                = tostring(RawEvent.device.hostname)
 | project-away _upn, _srcip, _rawType, _outcome
 ```
 
 > **Note:** We also emit the recommended ASIM fields `SrcDvcIpAddr` and `TargetUserType` here because the built-in brute-force template in Step 5 references them.
+
+> **💡 Canonical username field:** ASIM's canonical username field is `TargetUsername` (lowercase `n`). `User` is only an alias and is **not** read by built-in detection templates — so if the canonical field is missing or empty, the account entity in the Sentinel incident stays blank. Always populate `TargetUsername` directly; set `User = TargetUsername` as an alias, never the other way around.
 
 > **⚠️ If you try to *run* the query as-is, you'll get errors about undefined names** (`disabled`, `starttime`, …). That is **expected** — those names only exist once the editor knows they're function parameters. Skip running it; go straight to saving.
 
@@ -277,7 +279,7 @@ In the **Logs** editor, run:
 
 ```kusto
 vimAuthenticationContosoAuth(eventresult="Failure")
-| summarize FailedAttempts = count() by TargetUserName, SrcIpAddr
+| summarize FailedAttempts = count() by TargetUsername, SrcIpAddr
 | order by FailedAttempts desc
 ```
 

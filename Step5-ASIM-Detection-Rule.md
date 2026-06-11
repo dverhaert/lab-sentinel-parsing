@@ -50,18 +50,18 @@ ContosoAuthIngest_CL
 | where (isnull(starttime) or TimeGenerated >= starttime)
     and (isnull(endtime)   or TimeGenerated <= endtime)
 | where (array_length(targetusername_has_any) == 0
-         or TargetUserName has_any (targetusername_has_any))
+         or TargetUsername has_any (targetusername_has_any))
     and (array_length(srcipaddr_has_any_prefix) == 0
          or has_any_ipv4_prefix(SrcIpAddr, srcipaddr_has_any_prefix))
     and (array_length(eventtype_in) == 0
          or EventType in (eventtype_in))
     and (eventresult == "*" or EventResult == eventresult)
 | extend
-    User   = TargetUserName,
-    IpAddr = SrcIpAddr,
-    Dvc    = SrcDvcHostname,
-    SrcDvcIpAddr   = column_ifexists("SrcDvcIpAddr", SrcIpAddr),
-    TargetUserType = column_ifexists("TargetUserType", column_ifexists("TargetUsernameType", ""))
+    User           = TargetUsername,
+    IpAddr         = SrcIpAddr,
+    Dvc            = SrcDvcHostname,
+    SrcDvcIpAddr   = column_ifexists("SrcDvcIpAddr", ""),
+    TargetUserType = column_ifexists("TargetUserType", "")
 ```
 
 > **💡 Why add these two fields:** they keep compatibility with ASIM rules/template variants that expect `SrcDvcIpAddr` and `TargetUserType`, while safely falling back to this table's current columns.
@@ -114,7 +114,7 @@ _Im_Authentication
 
 The detection logic for brute force on the ASIM Authentication schema is:
 
-> Alert when the **same `TargetUserName`** has **≥ 5 failed authentications** from the **same `SrcIpAddr`** within a **5-minute** window.
+> Alert when the **same `TargetUsername`** has **≥ 5 failed authentications** from the **same `SrcIpAddr`** within a **5-minute** window.
 
 Notice what's **not** in that sentence:
 - No mention of which table the data lives in
@@ -141,7 +141,7 @@ Microsoft Sentinel ships a maintained brute-force template that uses ASIM normal
    - **Run frequency:** every 5 minutes (or as low as you can — for the demo we want it to fire fast)
    - **Lookup data from the last:** 1 hour
    - **Stop running query after:** 1 hour
-    - **Entity mapping:** this is not always auto-populated. If it is empty, map it manually: `Account → TargetUserName` (or `TargetUsername`, depending on template version) and `IP → IpAddresses`.
+    - **Entity mapping:** this is not always auto-populated. If it is empty, map it manually: `Account → TargetUsername` and `IP → IpAddresses`.
 6. **Review** → **Create**
 
 > **🛠️ Troubleshooting template query resolution in this lab:** some built-in template variants reference `imAuthentication` (lowercase `i`) plus the ASIM columns `SrcDvcIpAddr` and `TargetUserType`. In a lab workspace, make it resolve by either (a) editing the template query to use `_Im_Authentication`, or (b) creating an alias function named `imAuthentication` with body `_Im_Authentication` (that's it, no parameters necessary). Also ensure both custom `vim*` parsers emit `SrcDvcIpAddr` and `TargetUserType` (see [5.1](#51-wire-the-ingest-time-table-into-asim-too) and [Step 4.6](Step4-Query-time-Parsing.md#46-build-the-asim-filtering-parser-vimauthenticationcontosoauth)).
@@ -176,15 +176,15 @@ If the content pack isn't available in your tenant or you want to *see* the rule
        EndTime   = max(TimeGenerated),
        Vendors   = make_set(EventVendor),
        Products  = make_set(EventProduct)
-       by TargetUserName, SrcIpAddr, bin(TimeGenerated, window)
+       by TargetUsername, SrcIpAddr, bin(TimeGenerated, window)
    | where FailedAttempts >= threshold
    | extend
-       AccountCustomEntity = TargetUserName,
+       AccountCustomEntity = TargetUsername,
        IPCustomEntity      = SrcIpAddr
    ```
 
 4. **Entity mapping:**
-   - `Account` → identifier `Name`, column `TargetUserName`
+   - `Account` → identifier `Name`, column `TargetUsername`
    - `IP` → identifier `Address`, column `SrcIpAddr`
 5. **Query scheduling:** every 5 minutes, lookup last 1 hour
 6. **Alert threshold:** Trigger when number of query results is **greater than 0**
@@ -197,7 +197,7 @@ Let's read the query out loud — **the only thing it knows is ASIM**:
 | `_Im_Authentication` | The built-in unifying parser. **No table names.** |
 | `EventType == "Logon"` | ASIM vocabulary value. Same on every source. |
 | `EventResult == "Failure"` | ASIM vocabulary value. Same on every source. |
-| `summarize ... by TargetUserName, SrcIpAddr` | ASIM column names. Same on every source. |
+| `summarize ... by TargetUsername, SrcIpAddr` | ASIM column names. Same on every source. |
 
 **No reference to `ContosoAuth`, no `RawEvent.user.upn`, no `event.outcome`.** Onboard a tenth source tomorrow with its own `vim*` parser, and this rule starts watching it for free.
 
@@ -223,7 +223,7 @@ _Im_Authentication
     Vendors   = make_set(EventVendor),
     Products  = make_set(EventProduct),
     Sources   = make_set(Type)        // _CL table the row came from
-    by TargetUserName, SrcIpAddr, bin(TimeGenerated, window)
+    by TargetUsername, SrcIpAddr, bin(TimeGenerated, window)
 | where FailedAttempts >= threshold
 ```
 

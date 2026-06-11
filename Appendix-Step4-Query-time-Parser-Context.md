@@ -37,7 +37,7 @@ vimAuthenticationContosoAuth(
     starttime = ago(1h),
     eventresult = "Failure",
     srcipaddr_has_any_prefix = dynamic(["185.220."]))
-| summarize FailCount = count() by TargetUserName, SrcIpAddr
+| summarize FailCount = count() by TargetUsername, SrcIpAddr
 | where FailCount >= 5
 ```
 

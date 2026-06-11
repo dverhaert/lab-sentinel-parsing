@@ -88,7 +88,7 @@ Standard column names and types for common security event categories. Examples:
 - `WebSession` — proxy and WAF logs
 - `ProcessEvent`, `FileEvent`, `RegistryEvent`, `Dns`, `Audit`, …
 
-In every schema, fields like `EventVendor`, `EventProduct`, `EventResult`, `SrcIpAddr`, `TargetUserName` mean the same thing regardless of the original source.
+In every schema, fields like `EventVendor`, `EventProduct`, `EventResult`, `SrcIpAddr`, `TargetUsername` mean the same thing regardless of the original source.
 
 📖 [ASIM Authentication schema reference](https://learn.microsoft.com/en-us/azure/sentinel/normalization-schema-authentication)
 
@@ -127,7 +127,7 @@ When you query `_Im_Authentication`, Sentinel transparently calls all registered
 |---|---|---|
 | **When parsing happens** | Once, during ingestion, before data lands in the table | Every time a query runs |
 | **What's stored** | Already-normalized columns | The original raw record |
-| **Typical table shape** | Looks like ASIM (`SrcIpAddr`, `TargetUserName`, …) | Whatever the source sent |
+| **Typical table shape** | Looks like ASIM (`SrcIpAddr`, `TargetUsername`, …) | Whatever the source sent |
 | **Storage cost** | Pay for normalized columns only | Pay for raw data; can be cheaper if you drop fields |
 | **Compute cost** | Paid once, on ingest (small per-event) | Paid every query (can add up on large datasets) |
 | **Reversibility** | If the transform was wrong, the raw data is **lost** | Original data is intact; fix the parser, rerun |
@@ -153,7 +153,7 @@ You have ten sign-in sources. You want to detect **brute-force attacks** (many f
 
 **With ASIM:**
 - 1 rule, queries `_Im_Authentication`
-- Filter logic written once: `where EventResult == "Failure"` and `summarize count() by TargetUserName, SrcIpAddr`
+- Filter logic written once: `where EventResult == "Failure"` and `summarize count() by TargetUsername, SrcIpAddr`
 - Onboarding source 11 = write a parser, register it in `Im_AuthenticationCustom`. **Zero change to the rule.**
 
 This is exactly what the built-in **"Brute force attack against user credentials (Uses Authentication Normalization)"** rule does — and in Step 5 we will deploy it (or a simplified version) and watch it fire on `ContosoAuth` data **without ever telling it about ContosoAuth**.

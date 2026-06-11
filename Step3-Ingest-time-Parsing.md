@@ -38,7 +38,7 @@ Bruno  ──►  DCE  ──►  DCR (with transformKql)  ──►  ContosoAut
                                 │
               source                                       output
               ──────                                       ──────
-              {event.user.upn}        ─────►   TargetUserName
+              {event.user.upn}        ─────►   TargetUsername
               {event.src.ip}          ─────►   SrcIpAddr
               {event.outcome}         ─────►   EventResult
               {event.type}            ─────►   EventType
@@ -106,7 +106,7 @@ source
                             tostring(event.outcome) == "Failure", "Failure",
                             "Other"),
     EventResultDetails = tostring(event.reason),
-    TargetUserName     = tostring(event.user.upn),
+    TargetUsername     = tostring(event.user.upn),
     TargetUsernameType = "UPN",
     TargetUserId       = tostring(event.user.id),
     SrcIpAddr          = tostring(event.src.ip),
@@ -121,7 +121,7 @@ source
     TimeGenerated, EventVendor, EventProduct, EventSchema, EventSchemaVersion,
     EventCount, EventStartTime, EventEndTime, EventOriginalUid, EventOriginalType,
     EventType, EventResult, EventResultDetails,
-    TargetUserName, TargetUsernameType, TargetUserId,
+    TargetUsername, TargetUsernameType, TargetUserId,
     SrcIpAddr, SrcPortNumber, SrcGeoCountry, SrcGeoCity,
     SrcDvcHostname, SrcDvcOs,
     TargetAppName, TargetSessionId
@@ -228,13 +228,13 @@ Data takes **2-5 minutes** to appear after a successful 204. Be patient.
    | take 50
    ```
 
-3. You should see ~20 rows with **flat ASIM-shaped columns** — `TargetUserName`, `SrcIpAddr`, `EventResult`, `EventType`, etc.
+3. You should see ~20 rows with **flat ASIM-shaped columns** — `TargetUsername`, `SrcIpAddr`, `EventResult`, `EventType`, etc.
 4. Confirm the brute-force burst is there:
 
    ```kusto
    ContosoAuthIngest_CL
    | where EventResult == "Failure"
-   | summarize FailedAttempts = count() by TargetUserName, SrcIpAddr
+   | summarize FailedAttempts = count() by TargetUsername, SrcIpAddr
    | order by FailedAttempts desc
    ```
 
