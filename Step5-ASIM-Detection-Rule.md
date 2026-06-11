@@ -14,12 +14,14 @@
     - [Create `vimAuthenticationContosoAuthIngest`](#create-vimauthenticationcontosoauthingest)
     - [Update `Im_AuthenticationCustom` to include both](#update-im_authenticationcustom-to-include-both)
   - [5.2 The rule we're going to deploy](#52-the-rule-were-going-to-deploy)
+    - [⚠️ **Critical: Entity Mapping**](#️-critical-entity-mapping)
   - [5.3 Option A — Deploy the built-in template](#53-option-a--deploy-the-built-in-template)
   - [5.4 Option B — Create a simplified rule from scratch](#54-option-b--create-a-simplified-rule-from-scratch)
   - [5.5 Trigger and observe the alert](#55-trigger-and-observe-the-alert)
     - [Quick option — preview the rule logic now](#quick-option--preview-the-rule-logic-now)
     - [Real-time option — re-send the data with current timestamps](#real-time-option--re-send-the-data-with-current-timestamps)
   - [5.6 The "aha" moment](#56-the-aha-moment)
+  - [5.7 🎁 Bonus: Link sample data to real Entra users for Defender correlation](#57--bonus-link-sample-data-to-real-entra-users-for-defender-correlation)
   - [What you built](#what-you-built)
 
 ---
@@ -127,6 +129,23 @@ You have two ways to ship this rule. Pick one.
 
 ---
 
+### ⚠️ **Critical: Entity Mapping**
+
+**Do not skip this step.** The entity mapping is what turns a raw alert into an *incident with populated account and IP entities*. Your detection rule will not show the compromised username in the incident unless you map it correctly.
+
+**Map these two entities:**
+
+| Entity Type | ASIM Identifier | Column to use |
+|---|---|---|
+| **Account** | `Name` | **`TargetUsername`** (not `User`, not `TargetUserName`) |
+| **IP** | `Address` | **`SrcIpAddr`** (not `IpAddr`, not `IPAddress`) |
+
+> **💡 Why this matters:** Sentinel's entity engine looks for *exact* column names. If you map to `User` instead of `TargetUsername`, the incident will have no account entity because `User` is just an alias — the actual data lives in `TargetUsername`. Same with IPs. **Always use the canonical ASIM column names.**
+
+---
+
+---
+
 ## 5.3 Option A — Deploy the built-in template
 
 Microsoft Sentinel ships a maintained brute-force template that uses ASIM normalization.
@@ -141,8 +160,13 @@ Microsoft Sentinel ships a maintained brute-force template that uses ASIM normal
    - **Run frequency:** every 5 minutes (or as low as you can — for the demo we want it to fire fast)
    - **Lookup data from the last:** 1 hour
    - **Stop running query after:** 1 hour
-    - **Entity mapping:** this is not always auto-populated. If it is empty, map it manually: `Account → TargetUsername` and `IP → IpAddresses`.
-6. **Review** → **Create**
+
+6. **Entity mapping**:
+   - Under **Account** → `Name` identifier → column dropdown → select **`TargetUsername`**
+   - Under **IP** → `Address` identifier → column dropdown → select **`IpAddresses`** (or `SrcIpAddr` if it appears)
+   - ⚠️ If the column dropdowns show `User` or `IpAddr`, **ignore them**. Only `TargetUsername` and `SrcIpAddr` are ASIM-canonical.
+
+7. **Review** → **Create**
 
 > **🛠️ Troubleshooting template query resolution in this lab:** some built-in template variants reference `imAuthentication` (lowercase `i`) plus the ASIM columns `SrcDvcIpAddr` and `TargetUserType`. In a lab workspace, make it resolve by either (a) editing the template query to use `_Im_Authentication`, or (b) creating an alias function named `imAuthentication` with body `_Im_Authentication` (that's it, no parameters necessary). Also ensure both custom `vim*` parsers emit `SrcDvcIpAddr` and `TargetUserType` (see [5.1](#51-wire-the-ingest-time-table-into-asim-too) and [Step 4.6](Step4-Query-time-Parsing.md#46-build-the-asim-filtering-parser-vimauthenticationcontosoauth)).
 
@@ -183,9 +207,11 @@ If the content pack isn't available in your tenant or you want to *see* the rule
        IPCustomEntity      = SrcIpAddr
    ```
 
-4. **Entity mapping:**
-   - `Account` → identifier `Name`, column `TargetUsername`
-   - `IP` → identifier `Address`, column `SrcIpAddr`
+4. **Entity mapping** (critical — see callout above):
+   - `Account` → identifier dropdown `Name` → column dropdown **`TargetUsername`**
+   - `IP` → identifier dropdown `Address` → column dropdown **`SrcIpAddr`**
+   - ⚠️ The rule query already exports these as `AccountCustomEntity = TargetUsername` and `IPCustomEntity = SrcIpAddr`, so the UI mapping should match.
+
 5. **Query scheduling:** every 5 minutes, lookup last 1 hour
 6. **Alert threshold:** Trigger when number of query results is **greater than 0**
 7. **Review** → **Create**
@@ -255,6 +281,30 @@ That is the entire point of ASIM. **The detection author writes against the sche
 
 ---
 
+## 5.7 🎁 Bonus: Link sample data to real Entra users for Defender correlation
+
+The sample data contains fictional UPNs like `beth@yasuo.nl`, `chen@yasuo.nl`, etc. When you send this data through Sentinel and fire the detection rule, **the incident will have no entity enrichment** from Microsoft Defender because those users don't exist in your Entra tenant.
+
+To see **real entity correlation** (where Defender cross-references the username against Entra, finds the real user, and links their risky sign-ins and other signals), replace the fictional UPNs in the sample data with **actual users from your own tenant**.
+
+**Steps:**
+
+1. **Pick 2–3 real users from your Entra tenant** — they should have UPNs like `alice@yourcompany.com` or similar
+2. **Edit your sample data JSON file** (e.g., `sample-data/auth-events.json`):
+   - Replace all instances of the fictional UPN used in the sample (e.g., `beth@contoso.nl` or equivalent) with the UPN of one real user from your tenant
+   - Replace other fictional UPNs in the file with additional real users from your tenant
+   - Keep the IP addresses and event structure identical
+3. **Re-send the data via Bruno** using requests `02` and `03`, then wait for the rule to fire
+4. **View the incident** — now when you click the `Account` entity in the alert, Defender will show:
+   - The real user's profile
+   - Links to other risk events in your tenant (risky sign-ins, token claims, privilege escalations)
+   - Group memberships and admin roles
+   - Related incidents across your security stack
+
+> **💡 Why this matters:** this is where ASIM's value *really* shines. A single brute-force detection rule, deployed against both your custom logs **and** built-in sources like Sign-in Logs, creates a unified incident stream enriched with all of Entra's contextual data. No custom logic needed.
+
+---
+
 ## What you built
 
 - [ ] `vimAuthenticationContosoAuthIngest` — trivial wrapper for the already-flat ingest-time table
@@ -263,6 +313,7 @@ That is the entire point of ASIM. **The detection author writes against the sche
 - [ ] Entity mapping configured (`Account` / `IP`)
 - [ ] Verified the rule logic detects the brute-force burst in **both** pipelines
 - [ ] Internalized that the rule has zero source-specific logic — that's the entire point
+- [ ] *(Bonus)* Linked sample data to real Entra users and saw Defender correlation in action
 
 ---
 

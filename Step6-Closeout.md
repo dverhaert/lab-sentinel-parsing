@@ -20,6 +20,7 @@
     - [Ingest-time vs query-time in one line each](#ingest-time-vs-query-time-in-one-line-each)
     - [The five "must" rules of ASIM normalization](#the-five-must-rules-of-asim-normalization)
     - [The one rule that justifies the whole effort](#the-one-rule-that-justifies-the-whole-effort)
+  - [Thank you \& feedback](#thank-you--feedback)
 
 ---
 
@@ -77,6 +78,7 @@ In practice, mature Sentinel deployments often run **both**: a richly normalized
 - **`project` in the DCR transform that drops a column you later wish you had.** It's gone. Re-ingestion is the only fix.
 - **Writing a query-time parser without filter pushdown.** The parameters aren't decoration; rules that pass `eventresult="Failure"` expect you to *use* it before the heavy parsing.
 - **Tokens expire after 1 hour.** Re-running `01 - Get Token` is faster than debugging a 401.
+- **Case errors** Making small mistakes in lower/uppercase can lead to great frustration. Make sure to double check what variables you are changing, and please create a Pull Request to this repository if you see any mistakes.
 
 ---
 
@@ -135,5 +137,22 @@ If this was a shared workspace, **leave the analytic rule disabled rather than d
 ---
 
 🎉 **You're done. Thanks for showing up.**
+
+---
+
+## Thank you & feedback
+
+This lab represents a deep dive into a real-world skillset that takes most engineers weeks to assemble on their own. **Thank you for investing your time here.**
+
+If you found this guide useful, broken, or incomplete, **please reach out or open a pull request.** This is a living lab — your feedback and contributions make it better for everyone.
+
+**How to contribute:**
+- **Found a typo or error?** → Open a [Pull Request](https://github.com/your-repo-url) with a fix.
+- **A step didn't work as written?** → File an issue or contact me; I want to know.
+- **Want to add a new schema exercise** (NetworkSession, Dns, etc.)? → Reach out; I'll help you structure it.
+
+Even if you just want to say "this was useful" or "this was confusing," that input shapes the next revision. No feedback is too small.
+
+---
 
 [← Back: Step 5](Step5-ASIM-Detection-Rule.md) | [Back to overview](README.md)
