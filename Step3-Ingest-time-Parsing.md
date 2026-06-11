@@ -142,8 +142,6 @@ Let's break down **why** each section exists:
 
 > **⚠️ The `case()` for `EventType`:** notice we map `"password_change"` to `"Other"`. ASIM Authentication doesn't have a dedicated `PasswordChange` event type, so `Other` is the documented fallback. Real ASIM purists would route password-change events to a different schema (`AuditEvent`). For this lab, mapping to `Other` keeps everything in one table.
 
-> **➡️ Forward reference for Step 5:** this ingest transform intentionally omits the recommended ASIM fields `SrcDvcIpAddr` and `TargetUserType`; in this lab we backfill those later in the parser layer so the built-in brute-force template can resolve cleanly (see Step 5.1).
-
 7. Click **Apply** in the transformation editor — the preview pane should now show flat ASIM-shaped rows.
 8. **Next** through the rest of the wizard, then **Create**.
 

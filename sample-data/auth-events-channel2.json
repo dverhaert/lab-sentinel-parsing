@@ -137,10 +137,10 @@
       "type": "signin",
       "outcome": "Success",
       "reason": "",
-      "user": { "id": "g7", "name": "Giulia Rossi", "upn": "giulia@contoso.nl", "tenantId": "contoso.nl" },
-      "src": { "ip": "20.67.11.93", "port": 42201, "asn": 3269, "geo": { "country": "IT", "city": "Milan" } },
-      "device": { "hostname": "SURFACE-GIULIA", "os": "Windows", "osVersion": "11.0.26100" },
-      "app": { "name": "Teams", "sessionId": "tm-c209" }
+      "user": { "id": "f6", "name": "Farah El Amrani", "upn": "farah@contoso.nl", "tenantId": "contoso.nl" },
+      "src": { "ip": "198.51.100.88", "port": 60218, "asn": 9009, "geo": { "country": "MA", "city": "Casablanca" } },
+      "device": { "hostname": "unknown", "os": "Linux", "osVersion": "" },
+      "app": { "name": "Outlook", "sessionId": "ol-c209" }
     }
   },
   {
@@ -152,9 +152,9 @@
       "version": "1.4",
       "type": "signin",
       "outcome": "Failure",
-      "reason": "No such user",
-      "user": { "id": "", "name": "", "upn": "finance-admin@contoso.nl", "tenantId": "contoso.nl" },
-      "src": { "ip": "203.0.113.190", "port": 35512, "asn": 64501, "geo": { "country": "US", "city": "Ashburn" } },
+      "reason": "Incorrect password",
+      "user": { "id": "f6", "name": "Farah El Amrani", "upn": "farah@contoso.nl", "tenantId": "contoso.nl" },
+      "src": { "ip": "198.51.100.88", "port": 60219, "asn": 9009, "geo": { "country": "MA", "city": "Casablanca" } },
       "device": { "hostname": "unknown", "os": "unknown", "osVersion": "" },
       "app": { "name": "Outlook", "sessionId": "ol-c210" }
     }
@@ -200,11 +200,11 @@
       "version": "1.4",
       "type": "signin",
       "outcome": "Failure",
-      "reason": "MFA required",
-      "user": { "id": "g7", "name": "Giulia Rossi", "upn": "giulia@contoso.nl", "tenantId": "contoso.nl" },
-      "src": { "ip": "20.67.11.93", "port": 42202, "asn": 3269, "geo": { "country": "IT", "city": "Milan" } },
-      "device": { "hostname": "SURFACE-GIULIA", "os": "Windows", "osVersion": "11.0.26100" },
-      "app": { "name": "Teams", "sessionId": "tm-c213" }
+      "reason": "Incorrect password",
+      "user": { "id": "f6", "name": "Farah El Amrani", "upn": "farah@contoso.nl", "tenantId": "contoso.nl" },
+      "src": { "ip": "198.51.100.88", "port": 60220, "asn": 9009, "geo": { "country": "MA", "city": "Casablanca" } },
+      "device": { "hostname": "unknown", "os": "Linux", "osVersion": "" },
+      "app": { "name": "Outlook", "sessionId": "ol-c213" }
     }
   },
   {
@@ -265,10 +265,10 @@
       "type": "signin",
       "outcome": "Failure",
       "reason": "Incorrect password",
-      "user": { "id": "u1", "name": "Noor van Dijk", "upn": "noor@contoso.nl", "tenantId": "contoso.nl" },
-      "src": { "ip": "52.174.88.10", "port": 50120, "asn": 8075, "geo": { "country": "NL", "city": "Eindhoven" } },
-      "device": { "hostname": "LAPTOP-NOOR", "os": "Windows", "osVersion": "11.0.26100" },
-      "app": { "name": "SharePoint", "sessionId": "sp-c217" }
+      "user": { "id": "f6", "name": "Farah El Amrani", "upn": "farah@contoso.nl", "tenantId": "contoso.nl" },
+      "src": { "ip": "198.51.100.88", "port": 60221, "asn": 9009, "geo": { "country": "MA", "city": "Casablanca" } },
+      "device": { "hostname": "unknown", "os": "Linux", "osVersion": "" },
+      "app": { "name": "Outlook", "sessionId": "ol-c217" }
     }
   },
   {

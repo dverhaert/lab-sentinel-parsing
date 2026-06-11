@@ -60,9 +60,11 @@ ContosoAuthIngest_CL
     User   = TargetUserName,
     IpAddr = SrcIpAddr,
     Dvc    = SrcDvcHostname,
-    SrcDvcIpAddr   = column_ifexists("SrcDvcIpAddr", ""),
-    TargetUserType = column_ifexists("TargetUserType", "")
+    SrcDvcIpAddr   = column_ifexists("SrcDvcIpAddr", SrcIpAddr),
+    TargetUserType = column_ifexists("TargetUserType", column_ifexists("TargetUsernameType", ""))
 ```
+
+> **💡 Why add these two fields:** they keep compatibility with ASIM rules/template variants that expect `SrcDvcIpAddr` and `TargetUserType`, while safely falling back to this table's current columns.
 
 Same parameters as `vimAuthenticationContosoAuth`, **dramatically less code** — because the table already has ASIM column names. No `RawEvent.user.upn` digging required.
 
@@ -203,7 +205,7 @@ Let's read the query out loud — **the only thing it knows is ASIM**:
 
 ## 5.5 Trigger and observe the alert
 
-Our 20 sample events span only ~45 minutes of timestamps in early May 2026, so the rule's "last 1 hour" lookback will likely **not** match by the time you finish the lab. Two options to force a hit:
+Our 20 sample events span only ~45 minutes of timestamps in early May 2026, so the rule's "last 1 hour" lookback will **not** match by the time you finish the lab. Two options to force a hit:
 
 ### Quick option — preview the rule logic now
 

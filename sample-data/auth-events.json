@@ -1,6 +1,6 @@
 [
   {
-    "timestamp": "2026-06-10T15:28:11Z",
+    "timestamp": "2026-06-10T14:11:00Z",
     "event": {
       "id": "0f2c0ad8-5e8f-4a39-9e87-1a5d9c001001",
       "vendor": "ContosoAuth",
@@ -16,7 +16,7 @@
     }
   },
   {
-    "timestamp": "2026-06-10T15:29:44Z",
+    "timestamp": "2026-06-10T14:15:33Z",
     "event": {
       "id": "0f2c0ad8-5e8f-4a39-9e87-1a5d9c001002",
       "vendor": "ContosoAuth",
@@ -32,7 +32,7 @@
     }
   },
   {
-    "timestamp": "2026-06-10T15:30:01Z",
+    "timestamp": "2026-06-10T14:15:50Z",
     "event": {
       "id": "0f2c0ad8-5e8f-4a39-9e87-1a5d9c001003",
       "vendor": "ContosoAuth",
@@ -48,7 +48,7 @@
     }
   },
   {
-    "timestamp": "2026-06-10T15:30:18Z",
+    "timestamp": "2026-06-10T14:16:07Z",
     "event": {
       "id": "0f2c0ad8-5e8f-4a39-9e87-1a5d9c001004",
       "vendor": "ContosoAuth",
@@ -64,7 +64,7 @@
     }
   },
   {
-    "timestamp": "2026-06-10T15:30:35Z",
+    "timestamp": "2026-06-10T14:16:24Z",
     "event": {
       "id": "0f2c0ad8-5e8f-4a39-9e87-1a5d9c001005",
       "vendor": "ContosoAuth",
@@ -80,7 +80,7 @@
     }
   },
   {
-    "timestamp": "2026-06-10T15:30:52Z",
+    "timestamp": "2026-06-10T14:16:41Z",
     "event": {
       "id": "0f2c0ad8-5e8f-4a39-9e87-1a5d9c001006",
       "vendor": "ContosoAuth",
@@ -96,7 +96,7 @@
     }
   },
   {
-    "timestamp": "2026-06-10T15:31:09Z",
+    "timestamp": "2026-06-10T14:16:58Z",
     "event": {
       "id": "0f2c0ad8-5e8f-4a39-9e87-1a5d9c001007",
       "vendor": "ContosoAuth",
@@ -112,7 +112,7 @@
     }
   },
   {
-    "timestamp": "2026-06-10T15:31:26Z",
+    "timestamp": "2026-06-10T14:17:15Z",
     "event": {
       "id": "0f2c0ad8-5e8f-4a39-9e87-1a5d9c001008",
       "vendor": "ContosoAuth",
@@ -128,7 +128,7 @@
     }
   },
   {
-    "timestamp": "2026-06-10T15:31:43Z",
+    "timestamp": "2026-06-10T14:17:32Z",
     "event": {
       "id": "0f2c0ad8-5e8f-4a39-9e87-1a5d9c001009",
       "vendor": "ContosoAuth",
@@ -144,7 +144,7 @@
     }
   },
   {
-    "timestamp": "2026-06-10T15:32:01Z",
+    "timestamp": "2026-06-10T14:17:50Z",
     "event": {
       "id": "0f2c0ad8-5e8f-4a39-9e87-1a5d9c001010",
       "vendor": "ContosoAuth",
@@ -160,7 +160,7 @@
     }
   },
   {
-    "timestamp": "2026-06-10T15:33:03Z",
+    "timestamp": "2026-06-10T14:23:52Z",
     "event": {
       "id": "0f2c0ad8-5e8f-4a39-9e87-1a5d9c001011",
       "vendor": "ContosoAuth",
@@ -176,7 +176,7 @@
     }
   },
   {
-    "timestamp": "2026-06-10T15:34:22Z",
+    "timestamp": "2026-06-10T14:27:11Z",
     "event": {
       "id": "0f2c0ad8-5e8f-4a39-9e87-1a5d9c001012",
       "vendor": "ContosoAuth",
@@ -192,7 +192,7 @@
     }
   },
   {
-    "timestamp": "2026-06-10T15:35:55Z",
+    "timestamp": "2026-06-10T14:31:44Z",
     "event": {
       "id": "0f2c0ad8-5e8f-4a39-9e87-1a5d9c001013",
       "vendor": "ContosoAuth",
@@ -208,7 +208,7 @@
     }
   },
   {
-    "timestamp": "2026-06-10T15:36:30Z",
+    "timestamp": "2026-06-10T14:34:19Z",
     "event": {
       "id": "0f2c0ad8-5e8f-4a39-9e87-1a5d9c001014",
       "vendor": "ContosoAuth",
@@ -224,7 +224,7 @@
     }
   },
   {
-    "timestamp": "2026-06-10T15:37:14Z",
+    "timestamp": "2026-06-10T14:38:03Z",
     "event": {
       "id": "0f2c0ad8-5e8f-4a39-9e87-1a5d9c001015",
       "vendor": "ContosoAuth",
@@ -240,7 +240,7 @@
     }
   },
   {
-    "timestamp": "2026-06-10T15:37:48Z",
+    "timestamp": "2026-06-10T14:38:37Z",
     "event": {
       "id": "0f2c0ad8-5e8f-4a39-9e87-1a5d9c001016",
       "vendor": "ContosoAuth",
@@ -256,7 +256,7 @@
     }
   },
   {
-    "timestamp": "2026-06-10T15:38:02Z",
+    "timestamp": "2026-06-10T14:43:51Z",
     "event": {
       "id": "0f2c0ad8-5e8f-4a39-9e87-1a5d9c001017",
       "vendor": "ContosoAuth",
@@ -272,7 +272,7 @@
     }
   },
   {
-    "timestamp": "2026-06-10T15:39:40Z",
+    "timestamp": "2026-06-10T14:48:29Z",
     "event": {
       "id": "0f2c0ad8-5e8f-4a39-9e87-1a5d9c001018",
       "vendor": "ContosoAuth",
@@ -288,7 +288,7 @@
     }
   },
   {
-    "timestamp": "2026-06-10T15:40:11Z",
+    "timestamp": "2026-06-10T14:49:00Z",
     "event": {
       "id": "0f2c0ad8-5e8f-4a39-9e87-1a5d9c001019",
       "vendor": "ContosoAuth",
@@ -304,7 +304,7 @@
     }
   },
   {
-    "timestamp": "2026-06-10T15:42:07Z",
+    "timestamp": "2026-06-10T14:54:56Z",
     "event": {
       "id": "0f2c0ad8-5e8f-4a39-9e87-1a5d9c001020",
       "vendor": "ContosoAuth",
@@ -317,6 +317,102 @@
       "src": { "ip": "40.112.72.205", "port": 44910, "asn": 8075, "geo": { "country": "NL", "city": "Amsterdam" } },
       "device": { "hostname": "LAPTOP-ERIK", "os": "Windows", "osVersion": "11.0.26100" },
       "app": { "name": "SharePoint", "sessionId": "sp-6c44" }
+    }
+  },
+  {
+    "timestamp": "2026-06-10T14:18:12Z",
+    "event": {
+      "id": "0f2c0ad8-5e8f-4a39-9e87-1a5d9c001021",
+      "vendor": "ContosoAuth",
+      "product": "AuthGateway",
+      "version": "1.4",
+      "type": "signin",
+      "outcome": "Failure",
+      "reason": "Incorrect password",
+      "user": { "id": "b2", "name": "Beth de Vries", "upn": "beth@contoso.nl", "tenantId": "contoso.nl" },
+      "src": { "ip": "185.220.101.42", "port": 51230, "asn": 60729, "geo": { "country": "RO", "city": "Bucharest" } },
+      "device": { "hostname": "unknown", "os": "Linux", "osVersion": "" },
+      "app": { "name": "Outlook", "sessionId": "ol-7207" }
+    }
+  },
+  {
+    "timestamp": "2026-06-10T14:18:44Z",
+    "event": {
+      "id": "0f2c0ad8-5e8f-4a39-9e87-1a5d9c001022",
+      "vendor": "ContosoAuth",
+      "product": "AuthGateway",
+      "version": "1.4",
+      "type": "signin",
+      "outcome": "Success",
+      "reason": "",
+      "user": { "id": "b2", "name": "Beth de Vries", "upn": "beth@contoso.nl", "tenantId": "contoso.nl" },
+      "src": { "ip": "185.220.101.42", "port": 51231, "asn": 60729, "geo": { "country": "RO", "city": "Bucharest" } },
+      "device": { "hostname": "unknown", "os": "Linux", "osVersion": "" },
+      "app": { "name": "Outlook", "sessionId": "ol-7208" }
+    }
+  },
+  {
+    "timestamp": "2026-06-10T14:19:05Z",
+    "event": {
+      "id": "0f2c0ad8-5e8f-4a39-9e87-1a5d9c001023",
+      "vendor": "ContosoAuth",
+      "product": "AuthGateway",
+      "version": "1.4",
+      "type": "signin",
+      "outcome": "Failure",
+      "reason": "Incorrect password",
+      "user": { "id": "b2", "name": "Beth de Vries", "upn": "beth@contoso.nl", "tenantId": "contoso.nl" },
+      "src": { "ip": "185.220.101.42", "port": 51232, "asn": 60729, "geo": { "country": "RO", "city": "Bucharest" } },
+      "device": { "hostname": "unknown", "os": "Linux", "osVersion": "" },
+      "app": { "name": "Outlook", "sessionId": "ol-7209" }
+    }
+  },
+  {
+    "timestamp": "2026-06-10T14:19:27Z",
+    "event": {
+      "id": "0f2c0ad8-5e8f-4a39-9e87-1a5d9c001024",
+      "vendor": "ContosoAuth",
+      "product": "AuthGateway",
+      "version": "1.4",
+      "type": "signin",
+      "outcome": "Failure",
+      "reason": "Incorrect password",
+      "user": { "id": "b2", "name": "Beth de Vries", "upn": "beth@contoso.nl", "tenantId": "contoso.nl" },
+      "src": { "ip": "185.220.101.42", "port": 51233, "asn": 60729, "geo": { "country": "RO", "city": "Bucharest" } },
+      "device": { "hostname": "unknown", "os": "Linux", "osVersion": "" },
+      "app": { "name": "Outlook", "sessionId": "ol-7210" }
+    }
+  },
+  {
+    "timestamp": "2026-06-10T14:19:49Z",
+    "event": {
+      "id": "0f2c0ad8-5e8f-4a39-9e87-1a5d9c001025",
+      "vendor": "ContosoAuth",
+      "product": "AuthGateway",
+      "version": "1.4",
+      "type": "signin",
+      "outcome": "Success",
+      "reason": "",
+      "user": { "id": "b2", "name": "Beth de Vries", "upn": "beth@contoso.nl", "tenantId": "contoso.nl" },
+      "src": { "ip": "185.220.101.42", "port": 51234, "asn": 60729, "geo": { "country": "RO", "city": "Bucharest" } },
+      "device": { "hostname": "unknown", "os": "Linux", "osVersion": "" },
+      "app": { "name": "Outlook", "sessionId": "ol-7211" }
+    }
+  },
+  {
+    "timestamp": "2026-06-10T14:20:11Z",
+    "event": {
+      "id": "0f2c0ad8-5e8f-4a39-9e87-1a5d9c001026",
+      "vendor": "ContosoAuth",
+      "product": "AuthGateway",
+      "version": "1.4",
+      "type": "signin",
+      "outcome": "Success",
+      "reason": "",
+      "user": { "id": "b2", "name": "Beth de Vries", "upn": "beth@contoso.nl", "tenantId": "contoso.nl" },
+      "src": { "ip": "185.220.101.42", "port": 51235, "asn": 60729, "geo": { "country": "RO", "city": "Bucharest" } },
+      "device": { "hostname": "unknown", "os": "Linux", "osVersion": "" },
+      "app": { "name": "Outlook", "sessionId": "ol-7212" }
     }
   }
 ]
