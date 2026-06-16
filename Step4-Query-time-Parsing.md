@@ -199,7 +199,7 @@ ContosoAuthRaw_CL
     TargetAppName      = tostring(RawEvent.app.name),
     TargetSessionId    = tostring(RawEvent.app.sessionId),
     // ── ASIM aliases that detection rules may use ──
-    User               = TargetUsername,
+    User               = _upn,
     IpAddr             = _srcip,
     Dvc                = tostring(RawEvent.device.hostname)
 | project-away _upn, _srcip, _rawType, _outcome
