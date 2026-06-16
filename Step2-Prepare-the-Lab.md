@@ -16,6 +16,8 @@
   - [2.4 Create the Microsoft Entra app registration](#24-create-the-microsoft-entra-app-registration)
     - [Create a client secret](#create-a-client-secret)
   - [2.5 Install Bruno and create a collection](#25-install-bruno-and-create-a-collection)
+    - [Option A: Standalone Download](#option-a-standalone-download)
+    - [Option B: VS Code Extension](#option-b-vs-code-extension)
   - [2.6 Build the OAuth token request in Bruno](#26-build-the-oauth-token-request-in-bruno)
   - [2.7 Get your sample data](#27-get-your-sample-data)
   - [What you built](#what-you-built)
@@ -124,12 +126,28 @@ You will assign **`Monitoring Metrics Publisher`** RBAC on the DCRs in Steps 3 a
 
 [Bruno](https://www.usebruno.com/) is a Postman-like REST client that stores everything as plain text files — perfect for a lab.
 
+**Choose one of the following installation methods:**
+
+### Option A: Standalone Download
+
 1. Install Bruno from <https://www.usebruno.com/downloads>
 2. Open Bruno → **Create Collection**
+
+### Option B: VS Code Extension
+
+1. Open VS Code → **Extensions** → search for `Bruno`
+2. Install the [Bruno extension](https://marketplace.visualstudio.com/items?itemName=Bruno.bruno) by Anoop MD
+3. Open the Command Palette (`Ctrl+Shift+P`) → **Bruno: Create Collection**
+
+---
+
+**Once you have Bruno open (via either method), proceed with the next steps:**
+
+1. Create a collection:
    - **Name:** `Sentinel Parsing Lab`
    - **Location:** anywhere on your disk; just remember it
-3. With the collection open, click the **Environments** icon (gear, top-right) → **Configure**
-4. Create a new environment named `lab` and add these variables:
+2. With the collection open, click the **Environments** icon (gear, top-right) → **Configure**
+3. Create a new environment named `lab` and add these variables:
 
 | Variable | Value | Mark as secret? |
 |----------|-------|-----------------|
@@ -141,7 +159,7 @@ You will assign **`Monitoring Metrics Publisher`** RBAC on the DCRs in Steps 3 a
 | `dcrImmutableIdRaw` | (leave blank — Step 4 fills it) | no |
 | `bearerToken` | (leave blank — set automatically by token request) | yes |
 
-Your Bruno environment should look similar to this once the variables are added:
+4. Your Bruno environment should look similar to this once the variables are added:
 
  *Note that here, `tenantId` was added to the 'global' variables so not visible in this list of environment variables). Also, `streamRaw` will come later in the lab.*
 
