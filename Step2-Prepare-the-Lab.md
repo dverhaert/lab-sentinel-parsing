@@ -11,6 +11,7 @@
   - [Table of Contents](#table-of-contents)
   - [Goal](#goal)
   - [2.1 What we're building (and why)](#21-what-were-building-and-why)
+  - [Optional: Create a Log Analytics workspace](#optional-create-a-log-analytics-workspace)
   - [2.2 Identify your Log Analytics workspace](#22-identify-your-log-analytics-workspace)
   - [2.3 Create a Data Collection Endpoint (DCE)](#23-create-a-data-collection-endpoint-dce)
   - [2.4 Create the Microsoft Entra app registration](#24-create-the-microsoft-entra-app-registration)
@@ -58,6 +59,30 @@ Three roles, three reasons:
 > **💡 Why a DCE separate from a DCR?** The DCR endpoint feature now lets you POST directly to a DCR's URL without a DCE in many cases, but a DCE is still required for some scenarios (private link, certain regions) and is the most universally documented path. **We use a DCE for clarity** — once you understand it, the DCE-less variant is a one-line change.
 
 📖 [Logs Ingestion API overview](https://learn.microsoft.com/en-us/azure/azure-monitor/logs/logs-ingestion-api-overview)
+
+---
+
+## Optional: Create a Log Analytics workspace
+
+If you already have a Sentinel-ready Log Analytics workspace, skip this section and continue to **2.2**.
+
+1. In the Azure portal, search for **Log Analytics workspaces** → **Create**.
+2. Fill in:
+   - **Subscription / Resource group:** choose where your lab resources live.
+   - **Name:** use a unique name, e.g., `law-sentinel-parsing-lab-<yourinitials>`.
+   - **Region:** choose the same region you plan to use for DCE/DCR resources.
+3. Select **Review + create** → **Create**.
+4. Open the new workspace and confirm you can see:
+   - **Workspace name**
+   - **Resource group**
+   - **Region**
+   - **Subscription ID**
+5. (Recommended) Enable Microsoft Sentinel on this workspace:
+   - In the Azure portal, open **Microsoft Sentinel**.
+   - Select **+ Create**.
+   - Choose your new workspace and complete onboarding.
+
+> **💡 Why this matters:** this lab sends data to Log Analytics first, then uses Sentinel analytics on top. Without a workspace, the ingestion steps in Step 3 and Step 4 cannot run.
 
 ---
 
