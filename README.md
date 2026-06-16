@@ -99,6 +99,8 @@ Total: **~3 hours**. Steps are sequential — each one builds on the previous.
 3. Lines marked with **💡 Why** explain the concept behind a click
 4. Lines marked with **🔍 Explore** are optional deep-dives if you finish early
 
+For instructors: see the dedicated reference at [Instructor-Reference-Guide.md](Instructor-Reference-Guide.md).
+
 ---
 
 ## Quick links (you'll come back to these)
