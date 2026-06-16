@@ -194,7 +194,7 @@ If the content pack isn't available in your tenant or you want to *see* the rule
 
 1. Microsoft Sentinel → **Analytics** → **+ Create** → **Scheduled query rule**
 2. **General:**
-   - **Name:** `TTT - ASIM Brute Force (custom)`
+    - **Name:** `lab - ASIM Brute Force (custom)`
    - **Severity:** Medium
    - **Tactics:** Credential Access
 3. **Set rule logic** — paste this query:

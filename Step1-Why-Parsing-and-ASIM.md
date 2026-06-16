@@ -67,7 +67,7 @@ A translator stands at the entrance. Before a delegate enters, they translate ev
 **Option B — Translate at the microphone (query-time):**
 Delegates walk in speaking their own language. A live translator translates only when someone actually speaks. The original speech is preserved on tape forever; you can replay it and re-translate later if needed. But every Council session pays the translation cost in real time.
 
-That's it. That's the whole TTT in one analogy:
+That's it. That's the whole lab in one analogy:
 
 - **Ingest-time parsing** = translator at the door = **DCR `transformKql`**
 - **Query-time parsing** = translator at the microphone = **ASIM KQL parser function**
