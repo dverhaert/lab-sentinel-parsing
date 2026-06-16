@@ -1,4 +1,4 @@
-> **Tip:** Use a unique suffix for all resource names (e.g., `dcr-auth-ingestdv`, `CustomAuthIngest_CL`) to avoid naming collisions in shared environments.
+> **Tip:** Use a unique suffix for all resource names (e.g., `dcr-auth-ingestdv`, `ContosoAuthIngest_CL`) to avoid naming collisions in shared environments.
 # Step 3 — Ingest-time Parsing
 
 [← Back: Step 2](Step2-Prepare-the-Lab.md) | [Next: Step 4 — Query-time Parsing →](Step4-Query-time-Parsing.md)
@@ -60,7 +60,7 @@ Sentinel's portal can create the table **and** the DCR together. We'll use that.
 1. Open your **Log Analytics workspace** in the Azure portal
 2. Left nav → **Tables** → **+ Create** → **New custom log (DCR-based)**
 3. **Basics:**
-    - **Table name:** Use a generic and unique name, e.g., `CustomAuthIngest` (the portal will append `_CL` automatically → final name `CustomAuthIngest_CL`)
+    - **Table name:** Use a generic and unique name, e.g., `ContosoAuthIngest` (the portal will append `_CL` automatically → final name `ContosoAuthIngest_CL`)
     - **Description:** e.g., `Custom authentication sign-in events, normalized at ingest time to ASIM Authentication shape`
     - **Data collection rule:** **Create a new DCR**
        - **Name:** Use a generic and unique name, e.g., `dcr-auth-ingest-<yourinitials>`

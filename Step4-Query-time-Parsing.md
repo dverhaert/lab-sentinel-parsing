@@ -1,4 +1,4 @@
-> **Tip:** Always use a unique suffix for resource names (e.g., `dcr-auth-raw-dv`, `CustomAuthRaw_CL`) to ensure your resources do not conflict with others in the same environment.
+> **Tip:** Always use a unique suffix for resource names (e.g., `dcr-auth-raw-dv`, `ContosoAuthRaw_CL`) to ensure your resources do not conflict with others in the same environment.
 # Step 4 — Query-time Parsing
 
 [← Back: Step 3](Step3-Ingest-time-Parsing.md) | [Next: Step 5 — ASIM Detection Rule →](Step5-ASIM-Detection-Rule.md)
@@ -73,7 +73,7 @@ Same wizard as Step 3, with two key differences: a **different table name**, and
 
 1. Workspace → **Tables** → **+ Create** → **New custom log (DCR-based)**
 2. **Basics:**
-    - **Table name:** Use a generic and unique name, e.g., `CustomAuthRaw` → final name `CustomAuthRaw_CL`
+    - **Table name:** Use a generic and unique name, e.g., `ContosoAuthRaw` → final name `ContosoAuthRaw_CL`
     - **DCR:** **Create new** → e.g., `dcr-auth-raw-<yourinitials>`
     - **DCE:** the same DCE you created in Step 2 (e.g., `dce-sentinel-parsing-lab-<yourinitials>`)
 3. **Upload sample data** — upload `Parsing/sample-data/auth-events.json`. The portal parses it, infers a schema, and shows you a preview.
@@ -103,7 +103,7 @@ Same drill as Step 3.4 / 3.5, but for the **new** DCR.
 
 1. DCR (e.g., `dcr-auth-raw-<yourinitials>`) → **Access control (IAM)** → assign **`Monitoring Metrics Publisher`** to your app registration (e.g., `app-sentinel-parsing-lab-<yourinitials>`)
 2. **JSON view** → copy `properties.immutableId` → save as Bruno env var `dcrImmutableIdRaw`
-3. The stream name will be `Custom-CustomAuthRaw_CL` (or your chosen table name) → save as Bruno env var `streamRaw`
+3. The stream name will be `Custom-ContosoAuthRaw_CL` (or your chosen table name) → save as Bruno env var `streamRaw`
 
 ---
 
@@ -465,6 +465,7 @@ The parameter-less built-in unifier is **`_ASim_Authentication`**. Just like `_I
 
 2. **Save** → **Save as function**:
    - **Function name:** `ASim_AuthenticationCustom` (case-sensitive)
+   - **Legacy Category:** `ASIM` (case-sensitive)
    - **Parameters:** **none.**
 3. **Save**.
 
@@ -492,7 +493,7 @@ If rows come back — your source is now fully ASIM-compliant on both surfaces.
                        (yours, 12 params)              (yours, no params)
                                   │                                │
                                   ▼                                ▼
-                       vimAuthenticationContosoAuth    ASimAuthenticationContosoAuth
+|                       vimAuthenticationContosoAuth    ASimAuthenticationContosoAuth |
                        (yours, filtering)              (yours, parameter-less wrapper)
                                   │                                │
                                   └──────────────┬──────────────┘

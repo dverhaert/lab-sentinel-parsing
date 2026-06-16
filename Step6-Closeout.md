@@ -108,7 +108,7 @@ If this was a personal lab subscription and you're done, delete to stop billing:
 
 1. The **resource group** holding the DCE, both DCRs, and the custom tables — easiest is to put everything in a `rg-sentinel-parsing-lab-<yourinitials>` group up front and delete the whole group.
 2. The **app registration** (e.g., `app-sentinel-parsing-lab-<yourinitials>`) (Microsoft Entra → App registrations → … → Delete).
-3. The **KQL functions** you created (e.g., `vimAuthenticationContosoAuth`, `vimAuthenticationContosoAuthIngest`, `Im_AuthenticationContoso`) (workspace → Logs → Functions tab → delete).
+3. The **KQL functions** you created (e.g., `vimAuthenticationContosoAuth`, `vimAuthenticationContosoAuthIngest`, `Im_AuthenticationCustom`) (workspace → Logs → Functions tab → delete).
 4. The **analytic rule** you created in Step 5.
 
 If this was a shared workspace, **leave the analytic rule disabled rather than delete it** — your colleagues may want to inspect it.

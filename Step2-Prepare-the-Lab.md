@@ -250,7 +250,7 @@ The repo already includes a sample dataset at:
 Parsing/sample-data/auth-events.json
 ```
 
-It contains **20 sign-in events** from a fictional `ContosoAuth` product, with:
+It contains **20 sign-in events** from a fictional `CustomAuth` product, with:
 - A normal mix of successful and failed sign-ins from real-looking users
 - A **brute-force burst** against `beth@contoso.nl` — 9 failed password attempts from a single IP in Bucharest, ending in a "User locked" — which Step 5's detection rule will catch
 - A **"signout"** and **"password_change"** event — to prove our parser handles event types other than just sign-ins

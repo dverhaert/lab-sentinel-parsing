@@ -1,4 +1,4 @@
-> **Tip:** When creating KQL functions or analytic rules, add a unique suffix (e.g., `vimAuthenticationCustomAuthIngest_dv` to avoid conflicts in shared workspaces.
+> **Tip:** When creating KQL functions or analytic rules, add a unique suffix (e.g., `vimAuthenticationContosoAuthIngest_dv` to avoid conflicts in shared workspaces.
 # Step 5 — One ASIM Detection Rule, Both Sources
 
 [← Back: Step 4](Step4-Query-time-Parsing.md) | [Next: Step 6 — Closeout →](Step6-Closeout.md)
@@ -295,7 +295,7 @@ That is the entire point of ASIM. **The detection author writes against the sche
 
 ## 5.7 🎁 Bonus: Link sample data to real Entra users for Defender correlation
 
-The sample data contains fictional UPNs like `beth@yasuo.nl`, `chen@yasuo.nl`, etc. When you send this data through Sentinel and fire the detection rule, **the incident will have no entity enrichment** from Microsoft Defender because those users don't exist in your Entra tenant.
+The sample data contains fictional UPNs like `beth@contoso.nl`, `chen@contoso.nl`, etc. When you send this data through Sentinel and fire the detection rule, **the incident will have no entity enrichment** from Microsoft Defender because those users don't exist in your Entra tenant.
 
 To see **real entity correlation** (where Defender cross-references the username against Entra, finds the real user, and links their risky sign-ins and other signals), replace the fictional UPNs in the sample data with **actual users from your own tenant**.
 
