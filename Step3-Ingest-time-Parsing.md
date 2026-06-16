@@ -153,7 +153,7 @@ Let's break down **why** each section exists:
 
 Until we do this, Bruno will get a `403 Forbidden` when posting.
 
-1. Go to the new DCR resource: `dcr-contosoauth-ingest`
+1. Go to the new DCR resource: `dcr-auth-ingest-<yourinitials>`
 2. Left nav → **Access control (IAM)** → **+ Add** → **Add role assignment**
 3. **Role:** `Monitoring Metrics Publisher`
 4. **Assign access to:** `User, group, or service principal`
@@ -255,7 +255,7 @@ Data takes **2-5 minutes** to appear after a successful 204. Be patient.
 ## What you built
 
 - [ ] Custom table `ContosoAuthIngest_CL` (DCR-based)
-- [ ] DCR `dcr-contosoauth-ingest` with a `transformKql` that maps nested JSON to ASIM Authentication columns
+- [ ] DCR `dcr-auth-ingest-<yourinitials>` with a `transformKql` that maps nested JSON to ASIM Authentication columns
 - [ ] `Monitoring Metrics Publisher` granted to the app on the DCR
 - [ ] Bruno env updated with `dcrImmutableIdIngest` and `streamIngest`
 - [ ] Bruno request `02 - Send to Ingest DCR` returning **204 No Content**
