@@ -95,8 +95,8 @@ In every schema, fields like `EventVendor`, `EventProduct`, `EventResult`, `SrcI
 ### 2. **Parsers** — the "translators"
 
 Per-source KQL functions that convert raw data into the schema. Naming convention:
-- `vimAuthenticationCustomApp` — **filtering** parser (accepts time + filter parameters; faster, used in production by detection rules)
-- `ASimAuthenticationCustomApp` — **parameter-less** parser (a 1-line wrapper on top of the filtering one; used for ad-hoc hunting in the Logs editor)
+- `vimAuthenticationContosoAuth` — **filtering** parser (accepts time + filter parameters; faster, used in production by detection rules)
+- `ASimAuthenticationContosoAuth` — **parameter-less** parser (a 1-line wrapper on top of the filtering one; used for ad-hoc hunting in the Logs editor)
 
 You write one **pair** per source per schema. The pair shares logic — the parameter-less one just calls the filtering one with no filters.
 
@@ -113,7 +113,7 @@ _ASim_Authentication        ← parameter-less, used for hunting
 
 > **💡 Note on naming:** Microsoft also offers a *workspace-deployed* version of these unifiers (`imAuthentication` / `ASimAuthentication`, no leading underscore) that you can install via the [aka.ms/DeployASIM](https://aka.ms/DeployASIM) ARM template. They're functionally equivalent. **This guide uses the built-in `_Im_Authentication`** because it's already there — no extra deployment step. If you ever see a `Failed to resolve table or column expression named 'imAuthentication'` error, you've hit the difference.
 
-When you query `_Im_Authentication`, Sentinel transparently calls all registered parsers (e.g., `vimAuthenticationAAD`, `vimAuthenticationOkta`, `vimAuthenticationCustomApp`, etc.), and returns the union — all already in ASIM shape.
+When you query `_Im_Authentication`, Sentinel transparently calls all registered parsers (e.g., `vimAuthenticationAAD`, `vimAuthenticationOkta`, `vimAuthenticationContosoAuth`, etc.), and returns the union — all already in ASIM shape.
 
 > **💡 Why it works:** the unifying parser is *also* a KQL function. You can extend it (add your own custom source) by registering your parser through the **`Im_AuthenticationCustom`** custom unifying parser — which the built-in unifier automatically calls if it exists. You will create that in Step 4.
 
