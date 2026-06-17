@@ -27,7 +27,7 @@
   - [4.9 Bonus — complete the pair with `ASimAuthenticationContosoAuth`](#49-bonus--complete-the-pair-with-asimauthenticationcontosoauth)
     - [Why two parsers, not one?](#why-two-parsers-not-one)
     - [Create `ASimAuthenticationContosoAuth`](#create-asimauthenticationcontosoauth)
-    - [Register it with the parameter-less custom unifier `ASim_AuthenticationCustom`](#register-it-with-the-parameter-less-custom-unifier-asim_authenticationcustom)
+    - [Register it with the custom unifier `ASim_AuthenticationCustom`](#register-it-with-the-custom-unifier-asim_authenticationcustom)
     - [Recap of all four functions](#recap-of-all-four-functions)
   - [What you built](#what-you-built)
 
@@ -212,6 +212,11 @@ ContosoAuthRaw_CL
 > **⚠️ If you try to *run* the query as-is, you'll get errors about undefined names** (`disabled`, `starttime`, …). That is **expected** — those names only exist once the editor knows they're function parameters. Skip running it; go straight to saving.
 
 3. Click **Save** (top of the query editor) → **Save as function**
+
+    ![Save as function dialog](images/savingafunction.png)
+
+    *Figure 4.A - Saving `vimAuthenticationContosoAuth` as a function and defining its parameters in Log Analytics.*
+
 4. Fill in:
    - **Function name:** `vimAuthenticationContosoAuth`
     - **Description:** `ContosoAuth ASIM Authentication filtering parser (query-time)`
@@ -235,9 +240,15 @@ ContosoAuthRaw_CL
 
 5. **Save**.
 
-> **💡 Why this is the fix for your error:** the message `function expects 0 argument(s)` means the saved function has **zero parameters defined at the function level**. A `let parser = (...) { ... }; parser(...)` block inside the body is just an internal lambda — to the workspace, the function's public signature is whatever you typed (or didn't) in the **Parameters** UI of the Save dialog. Defining the parameters there is what makes `vimAuthenticationContosoAuth(eventresult="Failure")` work.
+> **⚠️ Paste hygiene + caching gotchas (important):** if a function runs inline but the saved function returns 0 rows (or you get an unexplained syntax error), re-type the **function name/identifiers** by hand. Copying from rendered Markdown can introduce invisible characters (for example, zero-width characters) that corrupt the saved definition. After editing or recreating a function that a unifier depends on, re-open Logs in a fresh tab (or wait briefly) so Sentinel drops any stale cached definition.
+
+> **💡 If you are running into an error:** the message `function expects 0 argument(s)` means the saved function has **zero parameters defined at the function level**. A `let parser = (...) { ... }; parser(...)` block inside the body is just an internal lambda — to the workspace, the function's public signature is whatever you typed (or didn't) in the **Parameters** UI of the Save dialog. Defining the parameters there is what makes `vimAuthenticationContosoAuth(eventresult="Failure")` work.
 >
 > If you already saved the function with no parameters: open it again (Logs → Functions tab → right-click `vimAuthenticationContosoAuth` → **Edit function details**), add the seven parameters as above, **Save**. No need to change the body.
+
+![Load existing function details](images/howtoloadexistingfunction.png)
+
+*Figure 4.B - Loading and editing existing function details to verify name, category, and parameter signature.*
 
 Now let's unpack **why** this looks the way it does — every section is intentional:
 
@@ -386,6 +397,8 @@ When you query `_Im_Authentication`, Sentinel runs every built-in source-specifi
 > **💡 Why the `ASimDisabledParsers` watchlist plumbing:** Microsoft's pattern for emergency disabling individual parsers without editing functions. If a parser is misbehaving in prod (e.g., performance regression), an SOC engineer adds an entry to the `ASimDisabledParsers` watchlist with `SearchKey = ExcludevimAuthenticationContosoAuth`, and the next query run skips it. We're wiring up the same hook so we behave like the production pattern.
 > **For this lab the watchlist is empty** — the `_GetWatchlist` call returns no rows, the `in (DisabledParsers)` check is false, and the parser runs normally. You don't need to create the watchlist for the lab to work; the `column_ifexists` guard handles its absence gracefully.
 
+> Troubleshooting: If `_GetWatchlist` itself is "unknown": **Microsoft Sentinel isn't enabled on that workspace.** `_GetWatchlist` / `_GetWatchlistAlias` are **Sentinel built-in functions** — they're provisioned only when Sentinel is onboarded to the Log Analytics workspace. A plain Log Analytics workspace (no Sentinel) won't have them. Fix: confirm you're querying the Sentinel-enabled workspace, or enable Sentinel on it.
+
 As a quick sanity check before the built-in unifier test, you can run `Im_AuthenticationCustom` directly and confirm rows come back:
 
 ![Im_AuthenticationCustom results](images/Im_AuthenticationCustom.png)
@@ -451,9 +464,9 @@ ASimAuthenticationContosoAuth
 
 Note the lack of `()` — because there are no parameters, you can call it like a table. Hunters love this.
 
-### Register it with the parameter-less custom unifier `ASim_AuthenticationCustom`
+### Register it with the custom unifier `ASim_AuthenticationCustom`
 
-The parameter-less built-in unifier is **`_ASim_Authentication`**. Just like `_Im_Authentication` auto-discovers `Im_AuthenticationCustom`, the parameter-less unifier auto-discovers **`ASim_AuthenticationCustom`** (note: no leading underscore on the custom name; **no** `Im_` prefix — it's `ASim_`).
+The built-in unifier is **`_ASim_Authentication`**. Just like `_Im_Authentication` auto-discovers `Im_AuthenticationCustom`, this unifier auto-discovers **`ASim_AuthenticationCustom`** (note: no leading underscore on the custom name; **no** `Im_` prefix — it's `ASim_`).
 
 1. **Logs** editor → paste this body:
 
@@ -466,8 +479,20 @@ The parameter-less built-in unifier is **`_ASim_Authentication`**. Just like `_I
 2. **Save** → **Save as function**:
    - **Function name:** `ASim_AuthenticationCustom` (case-sensitive)
    - **Legacy Category:** `ASIM` (case-sensitive)
-   - **Parameters:** **none.**
+    - **Parameters:** add one parameter:
+
+     | Type | Name | Default value |
+     |------|------|---------------|
+     | `bool` | `pack` | `false` |
+
+    **What `pack` does:** in ASIM, `pack=true` tells supporting parsers to include extra non-normalized source fields in `AdditionalFields` (dynamic). `pack=false` keeps output lean and mostly normalized-only.
+
+    **Why we add it here:** built-in `_ASim_*` unifiers may call custom hooks with `pack=pack`. Even if this lab parser body doesn't use `pack`, the parameter must exist in `ASim_AuthenticationCustom` so the call signature matches.
+
+    The function body stays unchanged.
 3. **Save**.
+
+> **💡 About `_Im_Authentication` vs `_ASim_Authentication`:** in this lab, `Im_AuthenticationCustom` still follows the documented 12-parameter contract shown in section 4.8. The `pack` requirement applies to `ASim_AuthenticationCustom` on the `_ASim_*` path.
 
 Verify:
 
@@ -490,10 +515,10 @@ If rows come back — your source is now fully ASIM-compliant on both surfaces.
                                   │                                │
                                   ▼                                ▼
                        Im_AuthenticationCustom         ASim_AuthenticationCustom
-                       (yours, 12 params)              (yours, no params)
+                       (yours, 12 params)              (yours, `pack` param)
                                   │                                │
                                   ▼                                ▼
-|                       vimAuthenticationContosoAuth    ASimAuthenticationContosoAuth |
+                       vimAuthenticationContosoAuth    ASimAuthenticationContosoAuth
                        (yours, filtering)              (yours, parameter-less wrapper)
                                   │                                │
                                   └──────────────┬──────────────┘
